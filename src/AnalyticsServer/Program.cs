@@ -9,16 +9,21 @@ using System.Configuration.Install;
 using System.IO;
 using System.Reflection;
 using System.ServiceProcess;
-using System.Threading;
+using System.Timers;
 using TrakHound.Api.v2;
+using Messaging = TrakHound.Api.v2.Messaging;
 
 namespace TrakHound.AnalyticsServer
 {
     static class Program
     {
+        private const int MENU_UPDATE_INTERVAL = 2000;
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        private static ManualResetEvent stop;
-        private static RestServer restServer;
+        private static RestServer server;
+        private static ServiceBase service;
+        private static Timer menuUpdateTimer;
+        private static bool started = false;
 
         /// <summary>
         /// The main entry point for the application.
@@ -61,8 +66,19 @@ namespace TrakHound.AnalyticsServer
             else
             {
                 // Start as Service
-                ServiceBase.Run(new AnalyticsServerService());
+                StartService();
             }
+        }
+
+        public static void StartService()
+        {
+            if (service == null) service = new AnalyticsServerService();
+            ServiceBase.Run(service);
+        }
+
+        public static void StopService()
+        {
+            if (service != null) service.Stop();
         }
 
         public static void Start()
@@ -87,9 +103,20 @@ namespace TrakHound.AnalyticsServer
                         throw ex;
                     }
 
+                    if (config.SendMessages)
+                    {
+                        // Start Menu Update Timer
+                        menuUpdateTimer = new Timer();
+                        menuUpdateTimer.Elapsed += UpdateMenuStatus;
+                        menuUpdateTimer.Interval = MENU_UPDATE_INTERVAL;
+                        menuUpdateTimer.Start();
+                    }
+
                     // Start the Rest Server
-                    restServer = new RestServer(config);
-                    restServer.Start();
+                    server = new RestServer(config);
+                    server.Start();
+
+                    started = true;
                 }
                 else
                 {
@@ -107,7 +134,15 @@ namespace TrakHound.AnalyticsServer
 
         public static void Stop()
         {
-            if (stop != null) stop.Set();
+            if (menuUpdateTimer != null)
+            {
+                menuUpdateTimer.Stop();
+                menuUpdateTimer.Dispose();
+            }
+
+            if (server != null) server.Stop();
+
+            started = false;
         }
 
         private static void InstallService()
@@ -126,6 +161,12 @@ namespace TrakHound.AnalyticsServer
             logger.Info("TrakHound AnalyticsServer : v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
             logger.Info(@"Copyright 2017 TrakHound Inc., All Rights Reserved");
             logger.Info("---------------------------");
+        }
+
+        private static void UpdateMenuStatus(object sender, ElapsedEventArgs e)
+        {
+            string status = started ? "Running" : "Stopped";
+            Messaging.Message.Send("trakhound-analyticsserver-menu", "Status", status);
         }
     }
 }

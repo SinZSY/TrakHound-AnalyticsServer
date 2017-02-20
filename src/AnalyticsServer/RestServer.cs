@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Messaging = TrakHound.Api.v2.Messaging;
 
 namespace TrakHound.AnalyticsServer
 {
@@ -18,11 +19,13 @@ namespace TrakHound.AnalyticsServer
         private HttpListener listener;
         private Thread thread;
         private ManualResetEvent stop;
+        private Configuration configuration;
 
         public List<string> Prefixes { get; set; }
 
         public RestServer(Configuration config)
         {
+            configuration = config;
             Prefixes = config.Prefixes;
 
             // Load the REST Modules
@@ -31,6 +34,8 @@ namespace TrakHound.AnalyticsServer
 
         public void Start()
         {
+            log.Info("REST Server Started..");
+
             if (Prefixes != null && Prefixes.Count > 0)
             {
                 stop = new ManualResetEvent(false);
@@ -44,11 +49,23 @@ namespace TrakHound.AnalyticsServer
                 log.Error(ex);
                 throw ex;
             }
+
+            if (configuration.SendMessages)
+            {
+                Messaging.Message.Send("trakhound-analyticsserver-menu", "Notify", "Started");
+                Messaging.Message.Send("trakhound-analyticsserver-menu", "Status", "Running");
+            }
         }
 
         public void Stop()
         {
             if (stop != null) stop.Set();
+
+            if (configuration.SendMessages)
+            {
+                Messaging.Message.Send("trakhound-analyticsserver-menu", "Notify", "Stopped");
+                Messaging.Message.Send("trakhound-analyticsserver-menu", "Status", "Stopped");
+            }
         }
 
         private void Worker()

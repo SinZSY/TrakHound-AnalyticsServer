@@ -41,6 +41,12 @@ namespace TrakHound.AnalyticsServer
         [XmlArrayItem("Prefix")]
         public List<string> Prefixes { get; set; }
 
+        /// <summary>
+        /// Gets or Sets whether the DataClient sends messages to external applications (ex. System Tray Menu)
+        /// </summary>
+        [XmlAttribute("sendMessages")]
+        public bool SendMessages { get; set; }
+
 
         public Configuration()
         {

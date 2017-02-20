@@ -3,15 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrakHound-AnalyticsServer", "TrakHound-AnalyticsServer.csproj", "{15095F8D-6EC3-414F-84EE-EDFCDCD3F856}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-connections", "..\Modules\mod-rest-connections\mod-rest-connections.csproj", "{E683FDB1-466B-4FA5-A98C-BCED431E703E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrakHound-AnalyticsServer", "AnalyticsServer\TrakHound-AnalyticsServer.csproj", "{15095F8D-6EC3-414F-84EE-EDFCDCD3F856}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-model", "..\Modules\mod-rest-model\mod-rest-model.csproj", "{D8994AA4-B663-4941-B83A-10580B252DF0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrakHound-AnalyticsServer-Menu", "AnalyticsServer-Menu\TrakHound-AnalyticsServer-Menu.csproj", "{A26AE1CA-C45B-4F56-B0E0-A6361F0AE4C7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-samples", "..\Modules\mod-rest-samples\mod-rest-samples.csproj", "{EDC9059A-5095-405F-827D-C0A63E9A57AD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-connections", "Modules\mod-rest-connections\mod-rest-connections.csproj", "{E683FDB1-466B-4FA5-A98C-BCED431E703E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-model", "Modules\mod-rest-model\mod-rest-model.csproj", "{D8994AA4-B663-4941-B83A-10580B252DF0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-samples", "Modules\mod-rest-samples\mod-rest-samples.csproj", "{EDC9059A-5095-405F-827D-C0A63E9A57AD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,6 +25,10 @@ Global
 		{15095F8D-6EC3-414F-84EE-EDFCDCD3F856}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15095F8D-6EC3-414F-84EE-EDFCDCD3F856}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{15095F8D-6EC3-414F-84EE-EDFCDCD3F856}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A26AE1CA-C45B-4F56-B0E0-A6361F0AE4C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A26AE1CA-C45B-4F56-B0E0-A6361F0AE4C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A26AE1CA-C45B-4F56-B0E0-A6361F0AE4C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A26AE1CA-C45B-4F56-B0E0-A6361F0AE4C7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E683FDB1-466B-4FA5-A98C-BCED431E703E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E683FDB1-466B-4FA5-A98C-BCED431E703E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E683FDB1-466B-4FA5-A98C-BCED431E703E}.Release|Any CPU.ActiveCfg = Release|Any CPU
