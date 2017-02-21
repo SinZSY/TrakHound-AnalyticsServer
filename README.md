@@ -1,7 +1,7 @@
 ![TrakHound AnalyticsServer](analyticsserver-logo-75px.png)
 <br>
 <br>
-TrakHound AnalyticsServer is used to retrieve and process MTConnect® data stored in database by a TrakHound DataServer.
+TrakHound AnalyticsServer is used to retrieve and process MTConnect® data stored in a database by a TrakHound DataServer.
 
 ![TrakHound Diagram](TrakHound-Diagram-01.jpg)
 
