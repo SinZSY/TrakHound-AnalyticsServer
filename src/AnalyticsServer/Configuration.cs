@@ -12,7 +12,7 @@ using System.Xml.Serialization;
 
 namespace TrakHound.AnalyticsServer
 {
-    [XmlRoot("DataServer")]
+    [XmlRoot("AnalyticsServer")]
     public class Configuration
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -50,6 +50,7 @@ namespace TrakHound.AnalyticsServer
 
         public Configuration()
         {
+            SendMessages = true;
             Port = 80;
         }
 
