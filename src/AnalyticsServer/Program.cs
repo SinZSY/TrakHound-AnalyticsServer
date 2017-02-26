@@ -11,7 +11,6 @@ using System.Reflection;
 using System.ServiceProcess;
 using System.Timers;
 using TrakHound.Api.v2;
-using Messaging = TrakHound.Api.v2.Messaging;
 
 namespace TrakHound.AnalyticsServer
 {
@@ -103,15 +102,6 @@ namespace TrakHound.AnalyticsServer
                         throw ex;
                     }
 
-                    if (config.SendMessages)
-                    {
-                        // Start Menu Update Timer
-                        menuUpdateTimer = new Timer();
-                        menuUpdateTimer.Elapsed += UpdateMenuStatus;
-                        menuUpdateTimer.Interval = MENU_UPDATE_INTERVAL;
-                        menuUpdateTimer.Start();
-                    }
-
                     // Start the Rest Server
                     server = new RestServer(config);
                     server.Start();
@@ -161,12 +151,6 @@ namespace TrakHound.AnalyticsServer
             logger.Info("TrakHound AnalyticsServer : v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
             logger.Info(@"Copyright 2017 TrakHound Inc., All Rights Reserved");
             logger.Info("---------------------------");
-        }
-
-        private static void UpdateMenuStatus(object sender, ElapsedEventArgs e)
-        {
-            string status = started ? "Running" : "Stopped";
-            Messaging.Message.Send("trakhound-analyticsserver-menu", "Status", status);
         }
     }
 }

@@ -4,7 +4,9 @@
 // file 'LICENSE.txt', which is part of this source code package.
 
 using System;
+using System.Collections.Generic;
 using System.Web;
+using Json = TrakHound.Api.v2.Json;
 
 namespace mod_rest_samples
 {
@@ -24,6 +26,8 @@ namespace mod_rest_samples
         public long Count { get; set; }
 
         public int Interval { get; set; }
+
+        public string[] DataItems { get; set; }
 
         private bool _isValid = false;
         public bool IsValid { get { return _isValid; } }
@@ -71,6 +75,13 @@ namespace mod_rest_samples
                             int interval = 0;
                             int.TryParse(s, out interval);
                             Interval = interval;
+
+                            // DataItems
+                            s = HttpUtility.ParseQueryString(uri.Query).Get("data_items");
+                            if (!string.IsNullOrEmpty(s))
+                            {
+                                DataItems = Json.Convert.FromJson<string[]>(s);
+                            }
 
                             _isValid = true;
                         }

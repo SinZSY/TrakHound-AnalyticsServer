@@ -26,6 +26,8 @@ namespace mod_rest_connections
             var query = new RequestQuery(requestUri);
             if (query.IsValid)
             {
+                log.Info("Connections Request Received : " + query.DeviceId);
+
                 try
                 {
                     if (!string.IsNullOrEmpty(query.DeviceId))

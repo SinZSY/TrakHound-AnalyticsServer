@@ -5,47 +5,29 @@
 
 using NLog;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace TrakHound.AnalyticsServer
+namespace mod_db_sql
 {
-    [XmlRoot("AnalyticsServer")]
+    [XmlRoot("Sql")]
     public class Configuration
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static Configuration Current { get; set; }
+        [XmlElement("Server")]
+        public string Server { get; set; }
 
-        [XmlIgnore]
-        public const string FILENAME = "server.config";
+        [XmlElement("User")]
+        public string User { get; set; }
 
-        [XmlElement("SslCertificatePath")]
-        public string SslCertificatePath { get; set; }
+        [XmlElement("Password")]
+        public string Password { get; set; }
 
-        [XmlElement("SslCertificatePassword")]
-        public string SslCertificatePassword { get; set; }
+        [XmlElement("Database")]
+        public string Database { get; set; }
 
-        [XmlElement("EndPoints")]
-        public EndPointRange EndPoints { get; set; }
-
-        [XmlElement("DatabaseConfigurationPath")]
-        public string DatabaseConfigurationPath { get; set; }
-
-        [XmlAttribute("port")]
-        public int Port { get; set; }
-
-        [XmlArray("Prefixes")]
-        [XmlArrayItem("Prefix")]
-        public List<string> Prefixes { get; set; }
-
-
-        public Configuration()
-        {
-            Port = 80;
-        }
 
         public static Configuration Get(string path)
         {
@@ -58,14 +40,13 @@ namespace TrakHound.AnalyticsServer
                     using (var xmlReader = XmlReader.Create(fileReader))
                     {
                         var config = (Configuration)serializer.Deserialize(xmlReader);
-                        Current = config;
 
                         return config;
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex);
+                    logger.Trace(ex);
                 }
             }
 

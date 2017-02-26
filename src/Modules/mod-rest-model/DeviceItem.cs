@@ -28,6 +28,10 @@ namespace mod_rest_model
             NativeName = device.NativeName;
             SampleInterval = device.SampleInterval;
             SampleRate = device.SampleRate;
+            Manufacturer = device.Manufacturer;
+            Model = device.Model;
+            SerialNumber = device.SerialNumber;
+            Description = device.Description;
         }
 
         public void Add(ComponentItem component)

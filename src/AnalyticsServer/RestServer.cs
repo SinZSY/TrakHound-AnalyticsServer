@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using Messaging = TrakHound.Api.v2.Messaging;
 
 namespace TrakHound.AnalyticsServer
 {
@@ -49,23 +48,11 @@ namespace TrakHound.AnalyticsServer
                 log.Error(ex);
                 throw ex;
             }
-
-            if (configuration.SendMessages)
-            {
-                Messaging.Message.Send("trakhound-analyticsserver-menu", "Notify", "Started");
-                Messaging.Message.Send("trakhound-analyticsserver-menu", "Status", "Running");
-            }
         }
 
         public void Stop()
         {
             if (stop != null) stop.Set();
-
-            if (configuration.SendMessages)
-            {
-                Messaging.Message.Send("trakhound-analyticsserver-menu", "Notify", "Stopped");
-                Messaging.Message.Send("trakhound-analyticsserver-menu", "Status", "Stopped");
-            }
         }
 
         private void Worker()
@@ -116,36 +103,44 @@ namespace TrakHound.AnalyticsServer
         {
             try
             {
-                log.Info("Connected to : " + context.Request.LocalEndPoint.ToString());
+                log.Info("Connected to : " + context.Request.LocalEndPoint.ToString() + " : " + context.Request.Url.ToString());
 
                 var uri = context.Request.Url;
                 using (var stream = context.Response.OutputStream)
                 {
-                    context.Response.StatusCode = 400;
+                    context.Response.StatusCode = 200;
+                    bool found = false;
 
                     foreach (var module in Modules.LoadedModules)
                     {
                         var m = Modules.Get(module.GetType());
                         if (m.GetResponse(uri, stream))
                         {
-                            context.Response.StatusCode = 200;
+                            found = true;
                             break;
                         }
                     }
+
+                    if (!found) context.Response.StatusCode = 400;
 
                     log.Info("Rest Response : " + context.Response.StatusCode);
                 }
             }
             catch (Exception ex)
             {
-                context.Response.StatusCode = 500;
                 log.Error(ex);
             }
             finally
             {
-                context.Response.OutputStream.Close();
-                context.Response.Close();
-                log.Info("Output Stream Closed : " + context.Request.LocalEndPoint.ToString());
+                if (context != null && context.Response != null)
+                {
+                    context.Response.Close();
+
+                    if (context.Request != null)
+                    {
+                        log.Info("Output Stream Closed : " + context.Request.LocalEndPoint.ToString());
+                    }
+                }
             }
         }
 

@@ -34,7 +34,7 @@ namespace mod_rest_samples
                     while (stream != null)
                     {
                         // Read Samples from Database
-                        var samples = Database.ReadSamples(null, query.DeviceId, query.From, query.To, query.At, query.Count);
+                        var samples = Database.ReadSamples(query.DataItems, query.DeviceId, query.From, query.To, query.At, query.Count);
                         if (!samples.IsNullOrEmpty())
                         {
                             foreach (var sample in samples)
