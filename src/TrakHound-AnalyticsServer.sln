@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-model", "Modules\m
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-samples", "Modules\mod-rest-samples\mod-rest-samples.csproj", "{EDC9059A-5095-405F-827D-C0A63E9A57AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-status", "Modules\mod-rest-status\mod-rest-status.csproj", "{89F89C15-704B-44F3-845C-DDFD3CE18316}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,10 @@ Global
 		{EDC9059A-5095-405F-827D-C0A63E9A57AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDC9059A-5095-405F-827D-C0A63E9A57AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDC9059A-5095-405F-827D-C0A63E9A57AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89F89C15-704B-44F3-845C-DDFD3CE18316}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89F89C15-704B-44F3-845C-DDFD3CE18316}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89F89C15-704B-44F3-845C-DDFD3CE18316}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89F89C15-704B-44F3-845C-DDFD3CE18316}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,5 +55,6 @@ Global
 		{E683FDB1-466B-4FA5-A98C-BCED431E703E} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
 		{D8994AA4-B663-4941-B83A-10580B252DF0} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
 		{EDC9059A-5095-405F-827D-C0A63E9A57AD} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
+		{89F89C15-704B-44F3-845C-DDFD3CE18316} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
 	EndGlobalSection
 EndGlobal
