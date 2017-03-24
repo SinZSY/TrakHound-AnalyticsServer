@@ -3,6 +3,7 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,17 +16,22 @@ namespace mod_rest_programs
 {
     class Program
     {
-        // SHA1 Hash of Name+Start+Stop
+        [JsonProperty("id")]
         public string Id { get { return GenerateId(); } }
 
+        [JsonProperty("name")]
         public string Name { get; set; }
 
+        [JsonProperty("completed")]
         public bool Completed { get; set; }
 
+        [JsonProperty("start")]
         public DateTime Start { get; set; }
 
+        [JsonProperty("stop")]
         public DateTime Stop { get; set; }
 
+        [JsonProperty("duration")]
         public TimeSpan Duration
         {
             get
@@ -38,6 +44,7 @@ namespace mod_rest_programs
             }
         }
 
+        [JsonProperty("events")]
         public List<ProgramEvent> Events { get; set; }
 
 

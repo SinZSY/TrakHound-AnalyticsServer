@@ -18,7 +18,7 @@ using Json = TrakHound.Api.v2.Json;
 namespace mod_rest_alarms
 {
     [InheritedExport(typeof(IRestModule))]
-    public class Alarms : IRestModule
+    public class Module : IRestModule
     {
         private static Logger log = LogManager.GetCurrentClassLogger();
 
@@ -58,7 +58,10 @@ namespace mod_rest_alarms
                                         // Create a new Alarm object for each Sample
                                         foreach (var sample in samples)
                                         {
-                                            alarms.Add(new Alarm(sample));
+                                            if (sample.Condition != "NORMAL")
+                                            {
+                                                alarms.Add(new Alarm(sample));
+                                            }
                                         }
 
                                         if (!alarms.IsNullOrEmpty())

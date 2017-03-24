@@ -19,12 +19,6 @@ namespace mod_rest_programs
 
         public DateTime To { get; set; }
 
-        public DateTime At { get; set; }
-
-        public long Count { get; set; }
-
-        public int Interval { get; set; }
-
         private bool _isValid = false;
         public bool IsValid { get { return _isValid; } }
 
@@ -45,34 +39,16 @@ namespace mod_rest_programs
                             // From
                             string s = HttpUtility.ParseQueryString(uri.Query).Get("from");
                             DateTime from = DateTime.MinValue;
-                            if (DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.None, out from)) from = from.ToUniversalTime();
+                            if (DateTime.TryParse(s, out from)) from = from.ToUniversalTime();
                             From = from;
 
                             // To
                             s = HttpUtility.ParseQueryString(uri.Query).Get("to");
                             DateTime to = DateTime.MinValue;
-                            if (DateTime.TryParse(s, null, System.Globalization.DateTimeStyles.None, out to)) to = to.ToUniversalTime();
+                            if (DateTime.TryParse(s, out to)) to = to.ToUniversalTime();
                             To = to;
 
-                            //Count
-                            s = HttpUtility.ParseQueryString(uri.Query).Get("count");
-                            long count = 0;
-                            long.TryParse(s, out count);
-                            Count = count;
-
-                            // At
-                            s = HttpUtility.ParseQueryString(uri.Query).Get("at");
-                            DateTime at = DateTime.MinValue;
-                            DateTime.TryParse(s, out at);
-                            At = at;
-
-                            // Interval
-                            s = HttpUtility.ParseQueryString(uri.Query).Get("interval");
-                            int interval = 0;
-                            int.TryParse(s, out interval);
-                            Interval = interval;
-
-                            _isValid = true;
+                            _isValid = From > DateTime.MinValue || To > DateTime.MinValue;
                         }
                     }
                 }

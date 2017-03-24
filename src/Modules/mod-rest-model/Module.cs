@@ -16,7 +16,7 @@ using Json = TrakHound.Api.v2.Json;
 namespace mod_rest_model
 {
     [InheritedExport(typeof(IRestModule))]
-    public class Model : IRestModule
+    public class Module : IRestModule
     {
         private static Logger log = LogManager.GetCurrentClassLogger();
 

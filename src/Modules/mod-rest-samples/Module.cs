@@ -16,7 +16,7 @@ using Json = TrakHound.Api.v2.Json;
 namespace mod_rest_samples
 {
     [InheritedExport(typeof(IRestModule))]
-    public class Samples : IRestModule
+    public class Module : IRestModule
     {
         private static Logger log = LogManager.GetCurrentClassLogger();
 
@@ -31,10 +31,12 @@ namespace mod_rest_samples
                 {
                     var sent = new List<Item>();
 
+                    DateTime from = query.From;
+
                     while (stream != null)
                     {
                         // Read Samples from Database
-                        var samples = Database.ReadSamples(query.DataItems, query.DeviceId, query.From, query.To, query.At, query.Count);
+                        var samples = Database.ReadSamples(query.DataItems, query.DeviceId, from, query.To, query.At, query.Count);
                         if (!samples.IsNullOrEmpty())
                         {
                             foreach (var sample in samples)
@@ -64,6 +66,8 @@ namespace mod_rest_samples
                                 }
                             }
                         }
+
+                        from = DateTime.UtcNow;
 
                         if (query.Interval <= 0) break;
                         else Thread.Sleep(query.Interval);

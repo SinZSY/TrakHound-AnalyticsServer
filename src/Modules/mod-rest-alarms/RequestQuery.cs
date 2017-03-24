@@ -50,13 +50,13 @@ namespace mod_rest_alarms
                             // From
                             string s = HttpUtility.ParseQueryString(uri.Query).Get("from");
                             DateTime from = DateTime.MinValue;
-                            DateTime.TryParse(s, out from);
+                            if (DateTime.TryParse(s, out from)) from = from.ToUniversalTime();
                             From = from;
 
                             // To
                             s = HttpUtility.ParseQueryString(uri.Query).Get("to");
                             DateTime to = DateTime.MinValue;
-                            DateTime.TryParse(s, out to);
+                            if (DateTime.TryParse(s, out to)) to = to.ToUniversalTime();
                             To = to;
 
                             //Count
@@ -68,7 +68,7 @@ namespace mod_rest_alarms
                             // At
                             s = HttpUtility.ParseQueryString(uri.Query).Get("at");
                             DateTime at = DateTime.MinValue;
-                            DateTime.TryParse(s, out at);
+                            if (DateTime.TryParse(s, out at)) at = at.ToUniversalTime();
                             At = at;
 
                             // Interval
