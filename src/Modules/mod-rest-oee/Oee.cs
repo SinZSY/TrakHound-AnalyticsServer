@@ -3,11 +3,8 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Newtonsoft.Json;
+using System;
 
 namespace mod_rest_oee
 {
@@ -18,7 +15,10 @@ namespace mod_rest_oee
         {
             get
             {
-                return Math.Round(Availability.Value * Performance.Value, 5);
+                if (Performance != null) return Math.Round(Availability.Value * Performance.Value, 5);
+                else if (Availability != null) return Math.Round(Availability.Value, 5);
+
+                return 0;
             }
         }
 
@@ -27,8 +27,5 @@ namespace mod_rest_oee
 
         [JsonProperty("performance")]
         public Performance Performance { get; set; }
-
-        //[JsonProperty("quality")]
-        //public Quality Quality { get; set; }
     }
 }

@@ -63,7 +63,7 @@ namespace mod_rest_oee
                         samples = samples.OrderBy(o => o.Timestamp).ToList();
 
                         var overrideEvents = new List<OverrideEvent>();
-                        double previousOverride = -1;
+                        double previousOverride = 0;
                         DateTime previousTime = DateTime.MinValue;
 
                         for (int i = 0; i < samples.Count; i++)
