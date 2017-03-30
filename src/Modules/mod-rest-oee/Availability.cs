@@ -22,6 +22,8 @@ namespace mod_rest_oee
         private const string EVENT_VALUE = "Active";
 
         private static Logger log = LogManager.GetCurrentClassLogger();
+        private static EventsConfiguration eventsConfiguration;
+
 
         [JsonProperty("operating_time")]
         public double OperatingTime { get; set; }
@@ -150,9 +152,11 @@ namespace mod_rest_oee
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);
 
             // Read the EventsConfiguration file
-            var config = EventsConfiguration.Get(configPath);
+            var config = eventsConfiguration;
+            if (config == null) config = EventsConfiguration.Get(configPath);
             if (config != null)
             {
+                eventsConfiguration = config;
                 var e = config.Events.Find(o => o.Name.ToLower() == eventName.ToLower());
                 if (e != null) return e;
             }

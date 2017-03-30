@@ -34,6 +34,9 @@ namespace mod_rest_model
                     List<ComponentDefinition> components = null;
                     List<DataItemDefinition> dataItems = null;
 
+                    var stpw = new System.Diagnostics.Stopwatch();
+                    stpw.Start();
+
                     // Get Current Agent
                     var agent = Database.ReadAgent(query.DeviceId);
                     if (agent != null)
@@ -47,6 +50,9 @@ namespace mod_rest_model
                         // Get Data Items
                         dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
                     }
+
+                    stpw.Stop();
+                    Console.WriteLine(stpw.ElapsedMilliseconds + "ms");
 
                     if (device != null && !components.IsNullOrEmpty() && !dataItems.IsNullOrEmpty())
                     {

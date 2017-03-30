@@ -20,9 +20,11 @@ using TrakHound.Api.v2.Events;
 namespace mod_rest_activity
 {
     [InheritedExport(typeof(IRestModule))]
-    public class Activity : IRestModule
+    public class Module : IRestModule
     {
         private static Logger log = LogManager.GetCurrentClassLogger();
+
+        private static EventsConfiguration eventsConfiguration;
 
         public string Name { get { return "Activity"; } }
 
@@ -36,111 +38,122 @@ namespace mod_rest_activity
                 {
                     var previousEvents = new List<EventItem>();
 
-                    while (stream != null)
+                    List<ComponentDefinition> components = null;
+                    List<DataItemDefinition> dataItems = null;
+                    List<Sample> samples = null;
+
+                    // Get Current Agent
+                    var agent = Database.ReadAgent(query.DeviceId);
+                    if (agent != null)
                     {
-                        var activityItem = new ActivityItem();
-                        var pathItems = new List<PathItem>();
+                        // Get Components
+                        components = Database.ReadComponents(query.DeviceId, agent.InstanceId);
 
-                        List<ComponentDefinition> components = null;
-                        List<DataItemDefinition> dataItems = null;
-                        List<Sample> samples = null;
+                        // Get Data Items
+                        dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
+                    }
 
-                        // Get Current Agent
-                        var agent = Database.ReadAgent(query.DeviceId);
-                        if (agent != null)
+                    if (!dataItems.IsNullOrEmpty())
+                    {
+                        DateTime from = query.From;
+
+                        while (stream != null)
                         {
-                            // Get Components
-                            components = Database.ReadComponents(query.DeviceId, agent.InstanceId);
-
-                            // Get Data Items
-                            dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
+                            var activityItem = new ActivityItem();
+                            var pathItems = new List<PathItem>();
 
                             // Get Samples
-                            samples = Database.ReadSamples(null, query.DeviceId, query.From, query.To, query.At, query.Count);
-                        }
+                            samples = Database.ReadSamples(null, query.DeviceId, from, query.To, query.At, query.Count);
 
-                        if (!dataItems.IsNullOrEmpty() && !samples.IsNullOrEmpty())
-                        {
-                            var events = GetEvents(query.EventName);
-                            if (events != null)
+                            if (!samples.IsNullOrEmpty())
                             {
-                                // Get the initial timestamp
-                                DateTime timestamp;
-                                if (query.From > DateTime.MinValue) timestamp = query.From;
-                                else if (query.At > DateTime.MinValue) timestamp = query.At;
-                                else timestamp = samples.Select(o => o.Timestamp).OrderByDescending(o => o).First();
-
-                                // Create a list of DataItemInfos (DataItems with Parent Component info)
-                                var dataItemInfos = DataItemInfo.CreateList(dataItems, components);
-
-                                // Get Path Components
-                                var paths = components.FindAll(o => o.Type == "Path");
-
-                                foreach (var e in events)
+                                var events = GetEvents(query.EventName);
+                                if (events != null)
                                 {
-                                    // Check if Event relies on Path and there are multiple paths
-                                    if (ContainsPath(e, components, dataItems) && paths.Count > 1)
-                                    {
-                                        foreach (var path in paths)
-                                        {
-                                            // Find all DataItemInfo descendants of this Path
-                                            var pathInfos = dataItemInfos.FindAll(o => !o.Parents.Exists(x => x.Type == "Path") || o.ParentId == path.Id);
+                                    // Get the initial timestamp
+                                    DateTime timestamp;
+                                    if (query.From > DateTime.MinValue) timestamp = query.From;
+                                    else if (query.At > DateTime.MinValue) timestamp = query.At;
+                                    else timestamp = samples.Select(o => o.Timestamp).OrderByDescending(o => o).First();
 
-                                            var pathItem = pathItems.Find(o => o.Id == path.Id);
-                                            if (pathItem == null)
+                                    // Create a list of DataItemInfos (DataItems with Parent Component info)
+                                    var dataItemInfos = DataItemInfo.CreateList(dataItems, components);
+
+                                    // Get Path Components
+                                    var paths = components.FindAll(o => o.Type == "Path");
+
+                                    foreach (var e in events)
+                                    {
+                                        // Check if Event relies on Path and there are multiple paths
+                                        if (ContainsPath(e, components, dataItems) && paths.Count > 1)
+                                        {
+                                            foreach (var path in paths)
                                             {
-                                                // Create new PathItem
-                                                pathItem = new PathItem();
-                                                pathItem.Id = path.Id;
-                                                pathItem.Name = path.Name;
-                                                pathItems.Add(pathItem);
+                                                // Find all DataItemInfo descendants of this Path
+                                                var pathInfos = dataItemInfos.FindAll(o => !o.Parents.Exists(x => x.Type == "Path") || o.ParentId == path.Id);
+
+                                                var pathItem = pathItems.Find(o => o.Id == path.Id);
+                                                if (pathItem == null)
+                                                {
+                                                    // Create new PathItem
+                                                    pathItem = new PathItem();
+                                                    pathItem.Id = path.Id;
+                                                    pathItem.Name = path.Name;
+                                                    pathItems.Add(pathItem);
+                                                }
+
+                                                // Get a list of EventItems for the Path
+                                                pathItem.Events.AddRange(GetEvents(e, pathInfos, samples, timestamp));
                                             }
-
-                                            // Get a list of EventItems for the Path
-                                            pathItem.Events.AddRange(GetEvents(e, pathInfos, samples, timestamp));
                                         }
-                                    }
-                                    else
-                                    {
-                                        activityItem.Add(GetEvents(e, dataItemInfos, samples, timestamp));
-                                    }
-                                }
-
-                                activityItem.Add(pathItems);
-
-                                bool send = false;
-
-                                // Filter out old events (for streaming)
-                                foreach (var eventItem in activityItem.Events)
-                                {
-                                    int i = previousEvents.FindIndex(o => o.Name == eventItem.Name);
-                                    if (i < 0)
-                                    {
-                                        send = true;
-                                        previousEvents.Add(eventItem);
-                                    }
-                                    else
-                                    {
-                                        if (previousEvents[i].Value != eventItem.Value)
+                                        else
                                         {
-                                            previousEvents[i] = eventItem;
-                                            send = true;
+                                            activityItem.Add(GetEvents(e, dataItemInfos, samples, timestamp));
                                         }
                                     }
-                                }
 
-                                if (send)
-                                {
-                                    // Write JSON to stream
-                                    string json = TrakHound.Api.v2.Json.Convert.ToJson(activityItem, true);
-                                    var bytes = Encoding.UTF8.GetBytes(json);
-                                    stream.Write(bytes, 0, bytes.Length);
+                                    activityItem.Add(pathItems);
+
+                                    bool send = false;
+
+                                    // Filter out old events (for streaming)
+                                    foreach (var eventItem in activityItem.Events)
+                                    {
+                                        int i = previousEvents.FindIndex(o => o.Name == eventItem.Name);
+                                        if (i < 0)
+                                        {
+                                            send = true;
+                                            previousEvents.Add(eventItem);
+                                        }
+                                        else
+                                        {
+                                            if (previousEvents[i].Value != eventItem.Value)
+                                            {
+                                                //previousEvents[i] = eventItem;
+                                                previousEvents.RemoveAt(i);
+                                                previousEvents.Add(eventItem);
+                                                send = true;
+                                            }
+                                        }
+                                    }
+
+                                    if (send)
+                                    {
+                                        // Write JSON to stream
+                                        string json = TrakHound.Api.v2.Json.Convert.ToJson(activityItem, query.Interval == 0);
+                                        if (query.Interval > 0) json += "\r\n";
+                                        var bytes = Encoding.UTF8.GetBytes(json);
+                                        stream.Write(bytes, 0, bytes.Length);
+                                    }
+                                    else stream.WriteByte(32);
                                 }
                             }
-                        }
 
-                        if (query.Interval <= 0) break;
-                        else Thread.Sleep(query.Interval);
+                            if (from > DateTime.MinValue) from = from.AddMilliseconds(query.Interval);
+
+                            if (query.Interval <= 0) break;
+                            else Thread.Sleep(query.Interval);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -195,7 +208,7 @@ namespace mod_rest_activity
                     if (response != null)
                     {
                         var item = new EventItem();
-                        item.Timestamp = timestamp;
+                        item.Timestamp = response.Timestamp;
                         item.Name = e.Name;
                         item.Description = e.Description;
                         item.Value = response.Value;
@@ -234,9 +247,12 @@ namespace mod_rest_activity
                 string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);
 
                 // Read the EventsConfiguration file
-                var config = EventsConfiguration.Get(configPath);
+                var config = eventsConfiguration;
+                if (config == null) config = EventsConfiguration.Get(configPath);
                 if (config != null)
                 {
+                    eventsConfiguration = config;
+
                     // Create a list of SampleInfo objects with DataItem information contained
                     var infos = SampleInfo.Create(dataItemInfos, samples);
 
@@ -258,7 +274,7 @@ namespace mod_rest_activity
                             if (response != null)
                             {
                                 var item = new EventItem();
-                                item.Timestamp = timestamp;
+                                item.Timestamp = response.Timestamp;
                                 item.Name = e.Name;
                                 item.Description = e.Description;
                                 item.Value = response.Value;

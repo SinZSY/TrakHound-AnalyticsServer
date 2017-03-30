@@ -15,6 +15,7 @@ using TrakHound.Api.v2;
 using TrakHound.Api.v2.Data;
 using Json = TrakHound.Api.v2.Json;
 
+
 namespace mod_rest_alarms
 {
     [InheritedExport(typeof(IRestModule))]
@@ -32,53 +33,72 @@ namespace mod_rest_alarms
             {
                 try
                 {
-                    while (stream != null)
-                    {
-                        List<DataItemDefinition> dataItems = null;
-                        List<Sample> samples = null;
+                    List<DataItemDefinition> dataItems = null;
+                    List<Sample> samples = null;
 
-                        // Get Current Agent
-                        var agent = Database.ReadAgent(query.DeviceId);
-                        if (agent != null)
+                    // Get Current Agent
+                    var agent = Database.ReadAgent(query.DeviceId);
+                    if (agent != null)
+                    {
+                        // Get Data Items
+                        dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
+                        if (dataItems != null)
                         {
-                            // Get Data Items
-                            dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
-                            if (dataItems != null)
+                            // Find all of the Conditions by DataItemId
+                            var errorIds = dataItems.FindAll(o => o.Category == "CONDITION").Select(o => o.Id);
+                            if (!errorIds.IsNullOrEmpty())
                             {
-                                // Find all of the Conditions by DataItemId
-                                var errorIds = dataItems.FindAll(o => o.Category == "CONDITION").Select(o => o.Id);
-                                if (!errorIds.IsNullOrEmpty())
+                                var from = query.From;
+
+                                var alarms = new List<Alarm>();
+
+                                while (stream != null)
                                 {
                                     // Get Samples
-                                    samples = Database.ReadSamples(errorIds.ToArray(), query.DeviceId, query.From, query.To, query.At, query.Count);
+                                    samples = Database.ReadSamples(errorIds.ToArray(), query.DeviceId, from, query.To, query.At, query.Count);
                                     if (!samples.IsNullOrEmpty())
                                     {
-                                        var alarms = new List<Alarm>();
+                                        bool send = false;
+                                        var sendAlarms = new List<Alarm>();
 
                                         // Create a new Alarm object for each Sample
                                         foreach (var sample in samples)
                                         {
-                                            if (sample.Condition != "NORMAL")
+                                            if (sample.Condition != "NORMAL" && sample.Condition != "UNAVAILABLE")
                                             {
-                                                alarms.Add(new Alarm(sample));
+                                                var alarm = new Alarm(sample);
+                                                if (!alarms.Exists(o => o.Id == alarm.Id))
+                                                {
+                                                    sendAlarms.Add(alarm);
+                                                    send = true;
+                                                }
                                             }
                                         }
 
-                                        if (!alarms.IsNullOrEmpty())
+                                        if (sendAlarms.Count > 0)
+                                        {
+                                            alarms.Clear();
+                                            alarms.AddRange(sendAlarms);
+                                        }
+
+                                        if (send)
                                         {
                                             // Write Error JSON to stream
-                                            string json = Json.Convert.ToJson(alarms, true);
+                                            string json = Json.Convert.ToJson(alarms, query.Interval == 0);
+                                            if (query.Interval > 0) json += "\r\n";
                                             var bytes = Encoding.UTF8.GetBytes(json);
                                             stream.Write(bytes, 0, bytes.Length);
                                         }
+                                        else stream.WriteByte(32);
                                     }
+
+                                    if (from > DateTime.MinValue) from = DateTime.UtcNow;
+
+                                    if (query.Interval <= 0) break;
+                                    else Thread.Sleep(query.Interval);
                                 }
                             }
                         }
-
-
-                        if (query.Interval <= 0) break;
-                        else Thread.Sleep(query.Interval);
                     }
                 }
                 catch (Exception ex)

@@ -63,23 +63,25 @@ namespace mod_rest_samples
                                     json += Environment.NewLine;
                                     var bytes = Encoding.UTF8.GetBytes(json);
                                     stream.Write(bytes, 0, bytes.Length);
+                                    stream.Flush();
                                 }
+                                else stream.WriteByte(32);
                             }
                         }
 
-                        from = DateTime.UtcNow;
+                        if (from > DateTime.MinValue) from = DateTime.UtcNow;
 
                         if (query.Interval <= 0) break;
                         else Thread.Sleep(query.Interval);
                     }
-
-                    return true;
                 }
                 catch (Exception ex)
                 {
                     log.Info("Samples Stream Closed");
                     log.Trace(ex);
                 }
+
+                return true;
             }
 
             return false;
