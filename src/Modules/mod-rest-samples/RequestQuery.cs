@@ -4,7 +4,6 @@
 // file 'LICENSE.txt', which is part of this source code package.
 
 using System;
-using System.Collections.Generic;
 using System.Web;
 using Json = TrakHound.Api.v2.Json;
 
