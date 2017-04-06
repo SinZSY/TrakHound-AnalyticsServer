@@ -34,18 +34,10 @@ namespace TrakHound.AnalyticsServer
         [XmlElement("DatabaseConfigurationPath")]
         public string DatabaseConfigurationPath { get; set; }
 
-        [XmlAttribute("port")]
-        public int Port { get; set; }
-
         [XmlArray("Prefixes")]
         [XmlArrayItem("Prefix")]
         public List<string> Prefixes { get; set; }
 
-
-        public Configuration()
-        {
-            Port = 80;
-        }
 
         public static Configuration Get(string path)
         {
