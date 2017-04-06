@@ -63,6 +63,22 @@ BEGIN
 	);
 END
 
+-- Create the Assets table
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'assets')
+BEGIN
+	CREATE TABLE assets (
+
+	[device_id] varchar(90) NOT NULL,
+	[id] varchar(90),
+	[timestamp] bigint NOT NULL,
+	[agent_instance_id] bigint NOT NULL,
+	[type] varchar(90) NOT NULL,
+	[xml] blob NOT NULL,
+
+	PRIMARY KEY ([device_id], [id], [timestamp]),
+	);
+END
+
 -- Create the Devices table
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'devices')
 BEGIN
@@ -77,6 +93,11 @@ BEGIN
 	[sample_interval] float,
 	[sample_rate] float,
 	[iso_841_class] varchar(90),
+	[manufacturer] varchar(180),
+	[model] varchar(180),
+	[serial_number] varchar(180),
+	[station] varchar(180),
+	[description] varchar(500),
 
 	PRIMARY KEY ([device_id], [agent_instance_id]),
 	);
@@ -128,4 +149,16 @@ BEGIN
 	);
 END
 
+-- Create the Status table
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'status')
+BEGIN
+	CREATE TABLE [status] (
 
+	[device_id] varchar(90) NOT NULL,
+	[timestamp] bigint NOT NULL,
+	[connected] bit,
+	[available] bit,
+
+	PRIMARY KEY ([device_id]),
+	);
+END

@@ -20,7 +20,7 @@ namespace mod_db_mysql
     [InheritedExport(typeof(IDatabaseModule))]
     public class Module : IDatabaseModule
     {
-        private const string CONNECTION_FORMAT = "server={0};uid={1};pwd={2};database={3};";
+        private const string CONNECTION_FORMAT = "server={0};uid={1};pwd={2};database={3};default command timeout=300;";
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private static string connectionString;
@@ -169,6 +169,68 @@ namespace mod_db_mysql
         }
 
         /// <summary>
+        /// Read Samples from the database
+        /// </summary>
+        public List<AssetDefinition> ReadAssets(string deviceId, string assetId, DateTime from, DateTime to, DateTime at, long count)
+        {
+            var assets = new List<AssetDefinition>();
+
+            string COLUMNS = "*";
+            string TABLENAME = "assets";
+
+            string assetFilter = "";
+            if (!string.IsNullOrEmpty(assetFilter)) assetFilter = " AND `id`='" + assetId + "'";
+
+            string query = null;
+
+            // Create query
+            if (from > DateTime.MinValue && to > DateTime.MinValue)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} AND `timestamp` >= '{4}' AND `timestamp` <= '{5}'";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, from.ToUnixTime(), to.ToUnixTime());
+            }
+            else if (from > DateTime.MinValue && count > 0)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} AND `timestamp` >= '{4}' LIMIT {5}";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, from.ToUnixTime(), count);
+            }
+            else if (to > DateTime.MinValue && count > 0)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} AND `timestamp` <= '{4}' LIMIT {5}";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, to.ToUnixTime(), count);
+            }
+            else if (from > DateTime.MinValue)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} AND `timestamp` >= '{4}' LIMIT 1000";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, from.ToUnixTime(), count);
+            }
+            else if (to > DateTime.MinValue)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} AND `timestamp` <= '{4}' LIMIT 1000";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, to.ToUnixTime(), count);
+            }
+            else if (count > 0)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} ORDER BY `timestamp` DESC LIMIT {4}";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, count);
+            }
+            else if (at > DateTime.MinValue)
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3} AND `timestamp` = '{4}'";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter, at.ToUnixTime());
+            }
+            else
+            {
+                string qf = "SELECT {0} FROM `{1}` WHERE `device_id` = '{2}'{3}";
+                query = string.Format(qf, COLUMNS, TABLENAME, deviceId, assetFilter);
+            }
+
+            if (!string.IsNullOrEmpty(query)) assets = ReadList<AssetDefinition>(query);
+
+            return assets;
+        }
+
+        /// <summary>
         /// Read the ComponentDefinitions for the specified Agent Instance Id from the database
         /// </summary>
         public List<ComponentDefinition> ReadComponents(string deviceId, long agentInstanceId)
@@ -216,7 +278,7 @@ namespace mod_db_mysql
         /// </summary>
         public DeviceDefinition ReadDevice(string deviceId, long agentInstanceId)
         {
-            string qf = "SELECT * FROM `devices` WHERE `device_id` = '{0}'  AND `agent_instance_id` = {1} LIMIT 1";
+            string qf = "SELECT * FROM `devices` WHERE `device_id` = '{0}' AND `agent_instance_id` = {1} LIMIT 1";
             string query = string.Format(qf, deviceId, agentInstanceId);
 
             return Read<DeviceDefinition>(query);
@@ -229,7 +291,6 @@ namespace mod_db_mysql
         {
             var samples = new List<Sample>();
 
-            //string COLUMNS = "`device_id`, `agent_instance_id`, `id`,`timestamp`,`sequence`,`cdata`,`condition`";
             string COLUMNS = "*";
             string TABLENAME_ARCHIVED = "archived_samples";
             string TABLENAME_CURRENT = "current_samples";
@@ -303,7 +364,20 @@ namespace mod_db_mysql
 
             foreach (var query in queries) samples.AddRange(ReadList<Sample>(query));
 
+            if (!dataItemIds.IsNullOrEmpty()) samples = samples.FindAll(o => dataItemIds.ToList().Exists(x => x == o.Id));
+
             return samples;
+        }
+
+        /// <summary>
+        /// Read the Status from the database
+        /// </summary>
+        public Status ReadStatus(string deviceId)
+        {
+            string qf = "SELECT * FROM `status` WHERE `device_id` = '{0}' LIMIT 1";
+            string query = string.Format(qf, deviceId);
+
+            return Read<Status>(query);
         }
 
         #endregion
@@ -312,14 +386,37 @@ namespace mod_db_mysql
 
         private bool Write(string query)
         {
-            try
+            if (!string.IsNullOrEmpty(query))
             {
-                return MySqlHelper.ExecuteNonQuery(connectionString, query, null) >= 0;
+                try
+                {
+                    // Create a new SqlConnection using the connectionString
+                    using (var connection = new MySqlConnection(connectionString))
+                    {
+                        // Open the connection
+                        connection.Open();
+
+                        using (MySqlCommand command = new MySqlCommand(query, connection))
+                        {
+                            // Execute the query
+                            return command.ExecuteNonQuery() >= 0;
+                        }
+                    }
+                }
+                catch (NullReferenceException ex) { logger.Debug(ex); }
+                catch (TimeoutException ex) { logger.Debug(ex); }
+                catch (MySqlException ex) { logger.Warn(ex); }
+                catch (Exception ex) { logger.Error(ex); }
             }
-            catch (MySqlException ex) { logger.Error(ex); }
-            catch (Exception ex) { logger.Error(ex); }
 
             return false;
+        }
+
+        private string EscapeString(string s)
+        {
+            if (!string.IsNullOrEmpty(s)) return MySqlHelper.EscapeString(s);
+
+            return s;
         }
 
         /// <summary>
@@ -338,7 +435,11 @@ namespace mod_db_mysql
                 for (var i = 0; i < definitions.Count; i++)
                 {
                     var d = definitions[i];
-                    v[i] = string.Format(VALUE_FORMAT, d.DeviceId, d.Address, d.Port, d.PhysicalAddress);
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId),
+                        EscapeString(d.Address), 
+                        d.Port,
+                        EscapeString(d.PhysicalAddress));
                 }
                 string values = string.Join(",", v);
 
@@ -367,7 +468,49 @@ namespace mod_db_mysql
                 for (var i = 0; i < definitions.Count; i++)
                 {
                     var d = definitions[i];
-                    v[i] = string.Format(VALUE_FORMAT, d.DeviceId, d.InstanceId, d.Sender, d.Version, d.BufferSize, d.TestIndicator, d.Timestamp.ToUnixTime());
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId), 
+                        d.InstanceId,
+                        EscapeString(d.Sender),
+                        EscapeString(d.Version),
+                        d.BufferSize,
+                        EscapeString(d.TestIndicator), 
+                        d.Timestamp.ToUnixTime());
+                }
+                string values = string.Join(",", v);
+
+                // Build Query string
+                string query = string.Format(QUERY_FORMAT, COLUMNS, values);
+
+                return Write(query);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Write AssetDefintions to the database
+        /// </summary>
+        public bool Write(List<AssetDefinitionData> definitions)
+        {
+            if (!definitions.IsNullOrEmpty())
+            {
+                string COLUMNS = "`device_id`, `id`, `timestamp`, `agent_instance_id`, `type`, `xml`";
+                string QUERY_FORMAT = "INSERT IGNORE INTO `assets` ({0}) VALUES {1}";
+                string VALUE_FORMAT = "('{0}','{1}',{2},{3},'{4}','{5}')";
+
+                // Build VALUES string
+                var v = new string[definitions.Count];
+                for (var i = 0; i < definitions.Count; i++)
+                {
+                    var d = definitions[i];
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId),
+                        EscapeString(d.Id),
+                        d.Timestamp.ToUnixTime(),
+                        d.AgentInstanceId,
+                        EscapeString(d.Type),
+                        EscapeString(d.Xml));
                 }
                 string values = string.Join(",", v);
 
@@ -396,7 +539,17 @@ namespace mod_db_mysql
                 for (var i = 0; i < definitions.Count; i++)
                 {
                     var d = definitions[i];
-                    v[i] = string.Format(VALUE_FORMAT, d.DeviceId, d.AgentInstanceId, d.Id, d.Uuid, d.Name, d.NativeName, d.SampleInterval, d.SampleRate, d.Type, d.ParentId);
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId), 
+                        d.AgentInstanceId,
+                        EscapeString(d.Id),
+                        EscapeString(d.Uuid),
+                        EscapeString(d.Name),
+                        EscapeString(d.NativeName),
+                        d.SampleInterval,
+                        d.SampleRate,
+                        EscapeString(d.Type),
+                        EscapeString(d.ParentId));
                 }
                 string values = string.Join(",", v);
 
@@ -416,16 +569,30 @@ namespace mod_db_mysql
         {
             if (!definitions.IsNullOrEmpty())
             {
-                string COLUMNS = "`device_id`, `agent_instance_id`, `id`, `uuid`, `name`, `native_name`, `sample_interval`, `sample_rate`, `iso_841_class`";
+                string COLUMNS = "`device_id`, `agent_instance_id`, `id`, `uuid`, `name`, `native_name`, `sample_interval`, `sample_rate`, `iso_841_class`, `manufacturer`, `model`, `serial_number`, `station`, `description`";
                 string QUERY_FORMAT = "INSERT IGNORE INTO `devices` ({0}) VALUES {1}";
-                string VALUE_FORMAT = "('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}')";
+                string VALUE_FORMAT = "('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','{10}','{11}','{12}','{13}')";
 
                 // Build VALUES string
                 var v = new string[definitions.Count];
                 for (var i = 0; i < definitions.Count; i++)
                 {
                     var d = definitions[i];
-                    v[i] = string.Format(VALUE_FORMAT, d.DeviceId, d.AgentInstanceId, d.Id, d.Uuid, d.Name, d.NativeName, d.SampleInterval, d.SampleRate, d.Iso841Class);
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId),
+                        d.AgentInstanceId,
+                        EscapeString(d.Id),
+                        EscapeString(d.Uuid),
+                        EscapeString(d.Name),
+                        EscapeString(d.NativeName), 
+                        d.SampleInterval,
+                        d.SampleRate,
+                        EscapeString(d.Iso841Class),
+                        EscapeString(d.Manufacturer),
+                        EscapeString(d.Model),
+                        EscapeString(d.SerialNumber),
+                        EscapeString(d.Station),
+                        EscapeString(d.Description));
                 }
                 string values = string.Join(",", v);
 
@@ -454,7 +621,23 @@ namespace mod_db_mysql
                 for (var i = 0; i < definitions.Count; i++)
                 {
                     var d = definitions[i];
-                    v[i] = string.Format(VALUE_FORMAT, d.DeviceId, d.AgentInstanceId, d.Id, d.Name, d.Category, d.Type, d.SubType, d.Statistic, d.Units, d.NativeUnits, d.NativeScale, d.CoordinateSystem, d.SampleRate, d.Representation, d.SignificantDigits, d.ParentId);
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId), 
+                        d.AgentInstanceId, 
+                        d.Id,
+                        EscapeString(d.Name),
+                        EscapeString(d.Category),
+                        EscapeString(d.Type),
+                        EscapeString(d.SubType),
+                        EscapeString(d.Statistic),
+                        EscapeString(d.Units),
+                        EscapeString(d.NativeUnits),
+                        EscapeString(d.NativeScale),
+                        EscapeString(d.CoordinateSystem),
+                        d.SampleRate,
+                        EscapeString(d.Representation),
+                        d.SignificantDigits,
+                        EscapeString(d.ParentId));
                 }
                 string values = string.Join(",", v);
 
@@ -488,13 +671,13 @@ namespace mod_db_mysql
                     var sample = archived[i];
 
                     values += string.Format(VALUE_FORMAT,
-                        sample.DeviceId,
-                        sample.Id,
+                        EscapeString(sample.DeviceId),
+                        EscapeString(sample.Id),
                         sample.Timestamp.ToUnixTime(),
                         sample.AgentInstanceId,
                         sample.Sequence,
-                        sample.CDATA,
-                        sample.Condition
+                        EscapeString(sample.CDATA),
+                        EscapeString(sample.Condition)
                         );
 
                     if (i < archived.Count - 1) values += ",";
@@ -508,8 +691,22 @@ namespace mod_db_mysql
                     var sample = samples.OrderBy(o => o.Timestamp).ToList().First(o => o.Id == id);
                     if (sample != null)
                     {
-                        string currentValues = string.Format(VALUE_FORMAT, sample.DeviceId, sample.Id, sample.Timestamp.ToUnixTime(), sample.AgentInstanceId, sample.Sequence, sample.CDATA, sample.Condition);
-                        string currentUpdate = string.Format(UPDATE_FORMAT, sample.Timestamp.ToUnixTime(), sample.AgentInstanceId, sample.Sequence, sample.CDATA, sample.Condition);
+                        string currentValues = string.Format(VALUE_FORMAT,
+                            EscapeString(sample.DeviceId),
+                            EscapeString(sample.Id), 
+                            sample.Timestamp.ToUnixTime(), 
+                            sample.AgentInstanceId, 
+                            sample.Sequence,
+                            EscapeString(sample.CDATA),
+                            EscapeString(sample.Condition));
+
+                        string currentUpdate = string.Format(UPDATE_FORMAT, 
+                            sample.Timestamp.ToUnixTime(), 
+                            sample.AgentInstanceId, 
+                            sample.Sequence,
+                            EscapeString(sample.CDATA),
+                            EscapeString(sample.Condition));
+
                         currentQueries.Add(string.Format(QUERY_FORMAT_CURRENT, COLUMNS, currentValues, currentUpdate));
                     }
                 }
@@ -523,6 +720,39 @@ namespace mod_db_mysql
                 queries.AddRange(currentQueries);
 
                 string query = string.Join(";", queries);
+
+                return Write(query);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Write StatusData to the database
+        /// </summary>
+        public bool Write(List<StatusData> definitions)
+        {
+            if (!definitions.IsNullOrEmpty())
+            {
+                string COLUMNS = "`device_id`, `timestamp`, `connected`, `available`";
+                string QUERY_FORMAT = "INSERT INTO `status` ({0}) VALUES {1} ON DUPLICATE KEY UPDATE `timestamp`=VALUES(`timestamp`), `connected`=VALUES(`connected`), `available`=VALUES(`available`)";
+                string VALUE_FORMAT = "('{0}',{1},{2},{3})";
+
+                // Build VALUES string
+                var v = new string[definitions.Count];
+                for (var i = 0; i < definitions.Count; i++)
+                {
+                    var d = definitions[i];
+                    v[i] = string.Format(VALUE_FORMAT,
+                        EscapeString(d.DeviceId),
+                        d.Timestamp.ToUnixTime(), 
+                        d.Connected ? 1 : 0,
+                        d.Available ? 1 : 0);
+                }
+                string values = string.Join(",", v);
+
+                // Build Query string
+                string query = string.Format(QUERY_FORMAT, COLUMNS, values);
 
                 return Write(query);
             }
