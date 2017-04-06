@@ -9,14 +9,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 
+
 namespace TrakHound.AnalyticsServer
 {
     internal class RestServer
     {
         private static Logger log = LogManager.GetCurrentClassLogger();
 
-        private HttpListener listener;
-        private Thread thread;
         private ManualResetEvent stop;
         private Configuration configuration;
 
@@ -39,7 +38,7 @@ namespace TrakHound.AnalyticsServer
             {
                 stop = new ManualResetEvent(false);
 
-                thread = new Thread(new ThreadStart(Worker));
+                var thread = new Thread(new ThreadStart(Worker));
                 thread.Start();
             }
             else
@@ -67,29 +66,25 @@ namespace TrakHound.AnalyticsServer
 
                     // (Service Unavailable - HTTP Status)
                     // Multiple urls are configured using netsh that point to the same place
- 
-                    listener = new HttpListener();
+
+                    var listener = new HttpListener();
 
                     // Add Prefixes
                     foreach (var prefix in Prefixes)
                     {
                         listener.Prefixes.Add(prefix);
                     }
-                    
+
                     // Start Listener
                     listener.Start();
 
                     foreach (var prefix in Prefixes) log.Info("Rest Server : Listening at " + prefix + "..");
 
+                    // Listen for Requests
                     while (listener.IsListening && !stop.WaitOne(0, true))
                     {
-                        var context = listener.GetContext();
-
-                        // Handle the request on a new thread
-                        ThreadPool.QueueUserWorkItem((o) =>
-                        {
-                            HandleRequest(context);
-                        });
+                        var result = listener.BeginGetContext(ListenerCallback, listener);
+                        result.AsyncWaitHandle.WaitOne();
                     }
                 }
                 catch (Exception ex)
@@ -99,50 +94,56 @@ namespace TrakHound.AnalyticsServer
             } while (!stop.WaitOne(1000, true));
         }
 
-        private void HandleRequest(HttpListenerContext context)
+        private void ListenerCallback(IAsyncResult result)
         {
             try
             {
-                log.Info("Connected to : " + context.Request.LocalEndPoint.ToString() + " : " + context.Request.Url.ToString());
+                var listenerClosure = (HttpListener)result.AsyncState;
+                var contextClosure = listenerClosure.EndGetContext(result);
 
-                var uri = context.Request.Url;
-                using (var stream = context.Response.OutputStream)
-                {
-                    context.Response.StatusCode = 200;
-                    bool found = false;
-
-                    foreach (var module in Modules.LoadedModules)
+                ThreadPool.QueueUserWorkItem(
+                    ctx =>
                     {
-                        var m = Modules.Get(module.GetType());
-                        if (m.GetResponse(uri, stream))
+                        try
                         {
-                            found = true;
-                            break;
+                            var response = (HttpListenerResponse)ctx;
+
+                            log.Info("Connected to : " + contextClosure.Request.LocalEndPoint.ToString() + " : " + contextClosure.Request.Url.ToString());
+
+                            var uri = contextClosure.Request.Url;
+                            using (var stream = contextClosure.Response.OutputStream)
+                            {
+                                contextClosure.Response.StatusCode = 200;
+                                bool found = false;
+
+                                foreach (var module in Modules.LoadedModules)
+                                {
+                                    var m = Modules.Get(module.GetType());
+                                    if (m.GetResponse(uri, stream))
+                                    {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!found) contextClosure.Response.StatusCode = 400;
+
+                                log.Info("Rest Response : " + contextClosure.Response.StatusCode);
+                            }
+
+                            response.Close();
                         }
-                    }
+                        catch (Exception ex)
+                        {
+                            log.Debug(ex);
+                        }
 
-                    if (!found) context.Response.StatusCode = 400;
-
-                    log.Info("Rest Response : " + context.Response.StatusCode);
-                }
+                    }, contextClosure.Response);
             }
             catch (Exception ex)
             {
-                log.Error(ex);
-            }
-            finally
-            {
-                if (context != null && context.Response != null)
-                {
-                    context.Response.Close();
-
-                    if (context.Request != null)
-                    {
-                        log.Info("Output Stream Closed : " + context.Request.LocalEndPoint.ToString());
-                    }
-                }
+                log.Info(ex);
             }
         }
-
     }
 }

@@ -22,12 +22,6 @@ namespace TrakHound.AnalyticsServer
         [XmlIgnore]
         public const string FILENAME = "server.config";
 
-        [XmlElement("SslCertificatePath")]
-        public string SslCertificatePath { get; set; }
-
-        [XmlElement("SslCertificatePassword")]
-        public string SslCertificatePassword { get; set; }
-
         [XmlElement("EndPoints")]
         public EndPointRange EndPoints { get; set; }
 
