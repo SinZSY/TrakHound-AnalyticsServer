@@ -35,6 +35,8 @@ namespace mod_rest_samples
 
                     while (stream != null)
                     {
+                        log.Debug("Retrieving Samples : " + requestUri.ToString());
+
                         // Read Samples from Database
                         var samples = Database.ReadSamples(query.DataItems, query.DeviceId, from, query.To, query.At, query.Count);
                         if (!samples.IsNullOrEmpty())
