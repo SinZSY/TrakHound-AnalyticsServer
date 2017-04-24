@@ -5,6 +5,7 @@
 
 using NLog;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
 using System.Text;
@@ -39,24 +40,58 @@ namespace mod_rest_oee
 
                     if (!dataItems.IsNullOrEmpty() && !components.IsNullOrEmpty())
                     {
-                        var oee = new Oee();
+                        var increment = query.Increment;
 
-                        // Get Availability
-                        var availability = Availability.Get(query, dataItems, components);
-                        if (availability != null)
+                        var from = query.From;
+                        var to = query.To;
+                        if (query.To == DateTime.MinValue) to = DateTime.UtcNow;
+
+                        var next = to;
+                        if (increment > 0) next = from.AddSeconds(increment);
+                        if (next > to) next = to;
+
+                        var oees = new List<Oee>();
+
+                        int i = 0;
+
+                        do
                         {
-                            oee.Availability = availability;
+                            var subquery = new RequestQuery(requestUri);
+                            subquery.From = from;
+                            subquery.To = next;
 
-                            // Get Performance
-                            var performance = Performance.Get(query, dataItems, availability._events);
-                            if (performance != null)
+                            i++;
+
+                            var oee = new Oee();
+                            oee.From = from;
+                            oee.To = next;
+
+                            // Get Availability
+                            var availability = Availability.Get(subquery, dataItems, components);
+                            if (availability != null)
                             {
-                                oee.Performance = performance;
+                                oee.Availability = availability;
+
+                                // Get Performance
+                                var performance = Performance.Get(subquery, dataItems, availability._events);
+                                if (performance != null)
+                                {
+                                    oee.Performance = performance;
+                                }
                             }
-                        }
+
+                            oees.Add(oee);
+
+                            // Increment time
+                            if (next == to) break;
+                            from = next;
+                            next = next.AddSeconds(increment);
+                            if (next > to) next = to;
+
+                        } while (next <= to);
 
                         // Write JSON to stream
-                        string json = Json.Convert.ToJson(oee, true);
+                        string json = Json.Convert.ToJson(oees, true);
                         var bytes = Encoding.UTF8.GetBytes(json);
                         stream.Write(bytes, 0, bytes.Length);
                     }

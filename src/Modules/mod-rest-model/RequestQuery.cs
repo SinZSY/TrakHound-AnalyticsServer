@@ -4,6 +4,7 @@
 // file 'LICENSE.txt', which is part of this source code package.
 
 using System;
+using System.Web;
 
 namespace mod_rest_model
 {
@@ -13,6 +14,8 @@ namespace mod_rest_model
     class RequestQuery
     {
         public string DeviceId { get; set; }
+
+        public bool DeviceOnly { get; set; }
 
         private bool _isValid = false;
         public bool IsValid { get { return _isValid; } }
@@ -30,6 +33,10 @@ namespace mod_rest_model
                         // Get the Device Id as the resource owner
                         DeviceId = segments[segments.Length - 2].Trim('/');
                         _isValid = !string.IsNullOrEmpty(DeviceId);
+
+                        // DeviceOnly flag
+                        var s = HttpUtility.ParseQueryString(uri.Query).Get("device_only");
+                        DeviceOnly = !string.IsNullOrEmpty(s) && s.ToLower() == "true";
                     }
                 }
             }

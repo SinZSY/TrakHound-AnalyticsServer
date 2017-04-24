@@ -22,6 +22,12 @@ namespace mod_rest_oee
             }
         }
 
+        [JsonProperty("from")]
+        public DateTime From { get; set; }
+
+        [JsonProperty("to")]
+        public DateTime To { get; set; }
+
         [JsonProperty("availability")]
         public Availability Availability { get; set; }
 

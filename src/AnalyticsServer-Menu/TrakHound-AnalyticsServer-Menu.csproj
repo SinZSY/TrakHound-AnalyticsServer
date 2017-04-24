@@ -41,12 +41,12 @@
   </PropertyGroup>
   <PropertyGroup />
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.4.4\lib\net40\NLog.dll</HintPath>
+      <HintPath>..\packages\NLog.4.4.5\lib\net40\NLog.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
@@ -65,8 +65,8 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <Reference Include="TrakHound-Api, Version=1.8.3.1709, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\TrakHound-Api.1.8.3.1709\lib\net40\TrakHound-Api.dll</HintPath>
+    <Reference Include="TrakHound-Api, Version=1.8.4.20789, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TrakHound-Api.1.8.4.20789\lib\net40\TrakHound-Api.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
@@ -106,6 +106,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\UAC_01.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\analyticsserver-status-running.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\analyticsserver-status-stopped.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

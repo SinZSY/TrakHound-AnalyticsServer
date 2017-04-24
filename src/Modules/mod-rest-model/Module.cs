@@ -44,17 +44,20 @@ namespace mod_rest_model
                         // Get Device
                         device = Database.ReadDevice(query.DeviceId, agent.InstanceId);
 
-                        // Get Components
-                        components = Database.ReadComponents(query.DeviceId, agent.InstanceId);
+                        if (!query.DeviceOnly)
+                        {
+                            // Get Components
+                            components = Database.ReadComponents(query.DeviceId, agent.InstanceId);
 
-                        // Get Data Items
-                        dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
+                            // Get Data Items
+                            dataItems = Database.ReadDataItems(query.DeviceId, agent.InstanceId);
+                        }
                     }
 
                     stpw.Stop();
                     Console.WriteLine(stpw.ElapsedMilliseconds + "ms");
 
-                    if (device != null && !components.IsNullOrEmpty() && !dataItems.IsNullOrEmpty())
+                    if (device != null)
                     {
                         // Use a converter to actually convert Defintions to DataItem objects.
                         // This is because we don't want to output the Defintion properties to JSON (as they are redundant)
@@ -62,29 +65,33 @@ namespace mod_rest_model
 
                         // Create new Item
                         var deviceItem = new DeviceItem(device);
-                        deviceItem.Add(dataItems.FindAll(o => o.ParentId == deviceItem.Id).ConvertAll(converter));
 
-                        var componentItems = new List<ComponentItem>();
-
-                        foreach (var component in components)
+                        if (!components.IsNullOrEmpty() && !dataItems.IsNullOrEmpty())
                         {
-                            var item = new ComponentItem(component);
-                            item.Add(dataItems.FindAll(o => o.ParentId == component.Id).ConvertAll(converter));
+                            deviceItem.Add(dataItems.FindAll(o => o.ParentId == deviceItem.Id).ConvertAll(converter));
 
-                            // Add any child components
-                            foreach (var child in componentItems.FindAll(o => o.ParentId == component.Id))
+                            var componentItems = new List<ComponentItem>();
+
+                            foreach (var component in components)
                             {
-                                componentItems.Remove(child);
-                                item.Add(child);
+                                var item = new ComponentItem(component);
+                                item.Add(dataItems.FindAll(o => o.ParentId == component.Id).ConvertAll(converter));
+
+                                // Add any child components
+                                foreach (var child in componentItems.FindAll(o => o.ParentId == component.Id))
+                                {
+                                    componentItems.Remove(child);
+                                    item.Add(child);
+                                }
+
+                                // Add to parent component
+                                var parent = componentItems.Find(o => o.Id == component.ParentId);
+                                if (parent != null) parent.Add(item);
+                                else componentItems.Add(item);
                             }
 
-                            // Add to parent component
-                            var parent = componentItems.Find(o => o.Id == component.ParentId);
-                            if (parent != null) parent.Add(item);
-                            else componentItems.Add(item);
-                        }
-
-                        deviceItem.Add(componentItems);
+                            deviceItem.Add(componentItems);
+                        }                      
 
                         // Write DeviceItem JSON to stream
                         string json = Json.Convert.ToJson(deviceItem, true);

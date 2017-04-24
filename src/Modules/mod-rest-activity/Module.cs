@@ -173,9 +173,11 @@ namespace mod_rest_activity
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);
 
             // Read the EventsConfiguration file
-            var config = EventsConfiguration.Get(configPath);
+            var config = eventsConfiguration;
+            if (config == null) config = EventsConfiguration.Get(configPath);
             if (config != null)
             {
+                eventsConfiguration = config;
                 if (!string.IsNullOrEmpty(eventName)) return config.Events.FindAll(o => o.Name.ToLower() == eventName.ToLower());
                 return config.Events;
             }
@@ -274,7 +276,7 @@ namespace mod_rest_activity
                             if (response != null)
                             {
                                 var item = new EventItem();
-                                item.Timestamp = response.Timestamp;
+                                if (item.Timestamp > response.Timestamp) item.Timestamp = response.Timestamp;
                                 item.Name = e.Name;
                                 item.Description = e.Description;
                                 item.Value = response.Value;

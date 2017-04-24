@@ -1,19 +1,15 @@
-﻿// Copyright (c) 2017 TrakHound Inc., All Rights Reserved.
-
-// This file is subject to the terms and conditions defined in
-// file 'LICENSE.txt', which is part of this source code package.
-
-using System.Reflection;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("mod-db-sql")]
+[assembly: AssemblyTitle("mod-rest-parts")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("mod-db-sql")]
+[assembly: AssemblyProduct("mod-rest-parts")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -24,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("f93e56e6-a4c1-4185-9639-2775410f861f")]
+[assembly: Guid("933541fc-5dec-4ed4-a85e-32e1ec0ad94f")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -36,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.2.0.*")]
-[assembly: AssemblyFileVersion("1.2.0.*")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]

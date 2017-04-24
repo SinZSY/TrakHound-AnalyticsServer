@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-alarms", "Modules\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-oee", "Modules\mod-rest-oee\mod-rest-oee.csproj", "{70BBCA2A-C167-4FE7-85FA-FACC8CEF18C8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mod-rest-parts", "Modules\mod-rest-parts\mod-rest-parts.csproj", "{933541FC-5DEC-4ED4-A85E-32E1EC0AD94F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{70BBCA2A-C167-4FE7-85FA-FACC8CEF18C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70BBCA2A-C167-4FE7-85FA-FACC8CEF18C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70BBCA2A-C167-4FE7-85FA-FACC8CEF18C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{933541FC-5DEC-4ED4-A85E-32E1EC0AD94F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{933541FC-5DEC-4ED4-A85E-32E1EC0AD94F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{933541FC-5DEC-4ED4-A85E-32E1EC0AD94F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{933541FC-5DEC-4ED4-A85E-32E1EC0AD94F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -84,5 +90,6 @@ Global
 		{06CF1326-4DB8-4705-835C-BF820E21EC43} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
 		{39080975-BB11-4A35-BD45-ED2DF7DCBD52} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
 		{70BBCA2A-C167-4FE7-85FA-FACC8CEF18C8} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
+		{933541FC-5DEC-4ED4-A85E-32E1EC0AD94F} = {C4FA7BEC-7C1A-462B-8DDB-FEEA9DF52938}
 	EndGlobalSection
 EndGlobal

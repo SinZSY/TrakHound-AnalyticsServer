@@ -33,12 +33,13 @@ namespace TrakHound.AnalyticsServer.Menu
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Configuration File", null, OpenConfigurationFile));
             menu.Items.Add(new ToolStripMenuItem("Open Log File", null, OpenLogFile));
+            menu.Items.Add(new ToolStripMenuItem("Run as Console", null, RunAsConsole));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Exit", null, Exit));
 
             // Set NotifyIcon Properties
             NotifyIcon.Text = "TrakHound AnalyticsServer";
-            NotifyIcon.Icon = Properties.Resources.analytics;
+            NotifyIcon.Icon = Properties.Resources.analyticsserver_status_stopped;
             NotifyIcon.ContextMenuStrip = menu;
             NotifyIcon.Visible = true;
         }
@@ -108,6 +109,28 @@ namespace TrakHound.AnalyticsServer.Menu
             catch (Exception ex)
             {
                 log.Error(ex);
+            }
+        }
+
+        private void RunAsConsole(object sender, EventArgs e)
+        {
+            if (Program.ServiceStatus == System.ServiceProcess.ServiceControllerStatus.Stopped)
+            {
+                try
+                {
+                    string appDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                    string exePath = Path.Combine(appDir, "TrakHound-AnalyticsServer.exe");
+
+                    if (File.Exists(exePath)) Process.Start(exePath, "debug");
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Service is Running. Stop service before running as console.", "Service Not Stopped");
             }
         }
 

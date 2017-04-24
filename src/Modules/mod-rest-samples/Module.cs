@@ -62,7 +62,7 @@ namespace mod_rest_samples
                                 if (write)
                                 {
                                     string json = Json.Convert.ToJson(item);
-                                    json += Environment.NewLine;
+                                    json += "\r\n";
                                     var bytes = Encoding.UTF8.GetBytes(json);
                                     stream.Write(bytes, 0, bytes.Length);
                                     stream.Flush();

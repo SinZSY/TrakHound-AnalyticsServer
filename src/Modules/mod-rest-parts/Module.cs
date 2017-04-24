@@ -15,7 +15,7 @@ using TrakHound.Api.v2;
 using TrakHound.Api.v2.Data;
 using TrakHound.Api.v2.Events;
 
-namespace mod_rest_programs
+namespace mod_rest_parts
 {
     [InheritedExport(typeof(IRestModule))]
     public class Module : IRestModule
@@ -24,7 +24,7 @@ namespace mod_rest_programs
         private static EventsConfiguration v12EventsConfiguration;
         private static EventsConfiguration v13EventsConfiguration;
 
-        public string Name { get { return "Programs"; } }
+        public string Name { get { return "Parts"; } }
 
 
         public bool GetResponse(Uri requestUri, Stream stream)
@@ -88,9 +88,8 @@ namespace mod_rest_programs
                                             string previousProgramName = null;
 
                                             // Stored variables
-                                            var programs = new List<Program>();
-                                            Program program = null;
-                                            ProgramEvent programEvent = null;
+                                            var parts = new List<Part>();
+                                            Part part = null;
 
                                             // Get distinct timestamps
                                             var timestamps = samples.FindAll(o => o.Timestamp >= timestamp).OrderBy(o => o.Timestamp).Select(o => o.Timestamp).Distinct().ToList();
@@ -120,64 +119,38 @@ namespace mod_rest_programs
                                                 var response = e.Evaluate(infos);
                                                 if (response != null)
                                                 {
-                                                    if (program != null)
+                                                    if (part != null)
                                                     {
                                                         // Update the program stop time
-                                                        program.Stop = time;
+                                                        part.Stop = time;
 
                                                         // Check if program changed
-                                                        if (program != null && programName != previousProgramName)
+                                                        if (part != null && programName != previousProgramName)
                                                         {
-                                                            if (programEvent != null)
-                                                            {
-                                                                programEvent.Stop = time;
-                                                                program.Events.Add(programEvent);
-                                                                programs.Add(program);
-                                                            }
-
-                                                            program = null;
-                                                            programEvent = null;
+                                                            part = null;
                                                             previousValue = null;
                                                         }
                                                     }
 
 
-                                                    if (program == null && !string.IsNullOrEmpty(programName) && programName != "UNAVAILABLE" &&
+                                                    if (part == null && !string.IsNullOrEmpty(programName) && programName != "UNAVAILABLE" &&
                                                         response.Value != "Stopped" && response.Value != "Completed")
                                                     {
-                                                        // Create a new Program object
-                                                        program = new Program();
-                                                        program.Name = programName;
-                                                        program.Start = time;
+                                                        // Create a new Part object
+                                                        part = new Part();
+                                                        part.Name = programName;
+                                                        part.Start = time;
                                                     }
 
 
-                                                    if (program != null)
+                                                    if (part != null)
                                                     {
                                                         if (response.Value != previousValue)
                                                         {
-                                                            if (programEvent != null)
+                                                            if (response.Value == "Stopped" || response.Value == "Completed")
                                                             {
-                                                                programEvent.Stop = time;
-                                                                program.Events.Add(programEvent);
-                                                            }
-
-                                                            if (response.Value != "Stopped" && response.Value != "Completed")
-                                                            {
-                                                                // Create a new ProgramEvent
-                                                                programEvent = new ProgramEvent();
-                                                                programEvent.Name = response.Value;
-                                                                programEvent.Description = response.Description;
-                                                                programEvent.Execution = execution;
-                                                                programEvent.Start = time;
-                                                            }
-                                                            else if (response.Value == "Stopped" || response.Value == "Completed")
-                                                            {
-                                                                program.Completed = response.Value == "Completed";
-
-                                                                programs.Add(program);
-                                                                program = null;
-                                                                programEvent = null;
+                                                                parts.Add(part);
+                                                                part = null;
                                                             }
                                                         }
                                                     }
@@ -191,22 +164,16 @@ namespace mod_rest_programs
 
                                             var toTime = query.To > DateTime.MinValue ? query.To : DateTime.UtcNow;
 
-                                            if (program != null)
+                                            if (part != null)
                                             {
-                                                if (programEvent != null)
-                                                {
-                                                    programEvent.Stop = toTime;
-                                                    program.Events.Add(programEvent);
-                                                }
-
-                                                program.Stop = toTime;
-                                                programs.Add(program);
+                                                part.Stop = toTime;
+                                                parts.Add(part);
                                             }
 
-                                            if (!programs.IsNullOrEmpty())
+                                            if (!parts.IsNullOrEmpty())
                                             {
                                                 // Write JSON to stream
-                                                string json = TrakHound.Api.v2.Json.Convert.ToJson(programs, true);
+                                                string json = TrakHound.Api.v2.Json.Convert.ToJson(parts, true);
                                                 var bytes = Encoding.UTF8.GetBytes(json);
                                                 stream.Write(bytes, 0, bytes.Length);
                                             }
@@ -219,7 +186,7 @@ namespace mod_rest_programs
                 }
                 catch (Exception ex)
                 {
-                    log.Info("Programs Stream Closed");
+                    log.Info("Parts Stream Closed");
                     log.Trace(ex);
                 }
 

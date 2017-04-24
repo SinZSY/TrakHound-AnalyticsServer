@@ -23,8 +23,8 @@ namespace TrakHound.AnalyticsServer.Menu
         private static SystemTrayMenu menu;
         private static ManualResetEvent stop;
         private static System.Timers.Timer serviceStatusTimer;
-        private static ServiceControllerStatus previousStatus;
 
+        internal static ServiceControllerStatus ServiceStatus;
 
         /// <summary>
         /// The main entry point for the application.
@@ -61,10 +61,14 @@ namespace TrakHound.AnalyticsServer.Menu
             {
                 var status = sc.Status;
 
-                if (status != previousStatus)
+                if (status != ServiceStatus)
                 {
                     // Update Menu Status Label
                     SystemTrayMenu.SetHeader(status.ToString());
+
+                    // Set NotifyIcon Icon
+                    if (status == ServiceControllerStatus.Running) SystemTrayMenu.NotifyIcon.Icon = Properties.Resources.analyticsserver_status_running;
+                    else SystemTrayMenu.NotifyIcon.Icon = Properties.Resources.analyticsserver_status_stopped;
 
                     // Create Notification
                     if (status == ServiceControllerStatus.Running || status == ServiceControllerStatus.Stopped)
@@ -72,12 +76,12 @@ namespace TrakHound.AnalyticsServer.Menu
                         var notifyIcon = SystemTrayMenu.NotifyIcon;
                         notifyIcon.BalloonTipTitle = "TrakHound AnalyticsServer";
                         notifyIcon.BalloonTipText = status.ToString();
-                        notifyIcon.Icon = Properties.Resources.analytics;
+                        notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
                         notifyIcon.ShowBalloonTip(5000);
                     }
                 }
 
-                previousStatus = status;
+                ServiceStatus = status;
             }
         }
 

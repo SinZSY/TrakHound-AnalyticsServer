@@ -23,6 +23,8 @@ namespace mod_rest_oee
 
         public int Interval { get; set; }
 
+        public int Increment { get; set; }
+
         public bool Details { get; set; }
 
         private bool _isValid = false;
@@ -76,6 +78,12 @@ namespace mod_rest_oee
                             int interval = 0;
                             int.TryParse(s, out interval);
                             Interval = interval;
+
+                            // Increment
+                            s = HttpUtility.ParseQueryString(uri.Query).Get("increment");
+                            int increment = 0;
+                            int.TryParse(s, out increment);
+                            Increment = increment;
 
                             // Details
                             s = HttpUtility.ParseQueryString(uri.Query).Get("details");
