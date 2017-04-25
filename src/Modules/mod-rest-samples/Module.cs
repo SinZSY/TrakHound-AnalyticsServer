@@ -88,5 +88,15 @@ namespace mod_rest_samples
 
             return false;
         }
+
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
+            return false;
+        }
     }
 }

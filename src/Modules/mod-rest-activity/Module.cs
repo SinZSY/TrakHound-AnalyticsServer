@@ -168,6 +168,16 @@ namespace mod_rest_activity
             return false;
         }
 
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
+            return false;
+        }
+
         private List<Event> GetEvents(string eventName)
         {
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);

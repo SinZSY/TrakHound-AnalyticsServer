@@ -15,7 +15,6 @@ using TrakHound.Api.v2;
 using TrakHound.Api.v2.Data;
 using Json = TrakHound.Api.v2.Json;
 
-
 namespace mod_rest_alarms
 {
     [InheritedExport(typeof(IRestModule))]
@@ -113,5 +112,14 @@ namespace mod_rest_alarms
             return false;
         }
 
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
+            return false;
+        }
     }
 }

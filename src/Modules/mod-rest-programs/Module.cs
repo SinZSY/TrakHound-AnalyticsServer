@@ -10,7 +10,6 @@ using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using TrakHound.Api.v2;
 using TrakHound.Api.v2.Data;
 using TrakHound.Api.v2.Events;
@@ -226,6 +225,16 @@ namespace mod_rest_programs
                 return true;
             }
 
+            return false;
+        }
+
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
             return false;
         }
 

@@ -52,5 +52,15 @@ namespace mod_rest_status
 
             return false;
         }
+
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
+            return false;
+        }
     }
 }

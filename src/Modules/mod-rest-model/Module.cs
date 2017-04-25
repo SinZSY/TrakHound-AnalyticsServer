@@ -110,6 +110,16 @@ namespace mod_rest_model
             return false;
         }
 
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
+            return false;
+        }
+
         private static DataItem ConvertDataItem(DataItemDefinition definition)
         {
             var dataItem = new DataItem();

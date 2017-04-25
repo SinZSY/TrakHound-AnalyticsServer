@@ -12,7 +12,6 @@ using System.Text;
 using TrakHound.Api.v2;
 using Json = TrakHound.Api.v2.Json;
 
-
 namespace mod_rest_oee
 {
     [InheritedExport(typeof(IRestModule))]
@@ -100,6 +99,16 @@ namespace mod_rest_oee
                 return true;
             }
 
+            return false;
+        }
+
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
             return false;
         }
     }
