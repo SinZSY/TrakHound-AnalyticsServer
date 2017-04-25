@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 
-
 namespace TrakHound.AnalyticsServer
 {
     internal class RestServer
@@ -114,24 +113,75 @@ namespace TrakHound.AnalyticsServer
                             response.Headers.Add("Access-Control-Allow-Methods", "POST, GET");
 
                             var uri = contextClosure.Request.Url;
-                            using (var stream = contextClosure.Response.OutputStream)
+                            var method = contextClosure.Request.HttpMethod;
+
+                            switch (method)
                             {
-                                contextClosure.Response.StatusCode = 200;
-                                bool found = false;
+                                case "GET":
 
-                                foreach (var module in Modules.LoadedModules)
-                                {
-                                    var m = Modules.Get(module.GetType());
-                                    if (m.GetResponse(uri, stream))
+                                    using (var stream = contextClosure.Response.OutputStream)
                                     {
-                                        found = true;
-                                        break;
+                                        contextClosure.Response.StatusCode = 200;
+                                        bool found = false;
+
+                                        foreach (var module in Modules.LoadedModules)
+                                        {
+                                            var m = Modules.Get(module.GetType());
+                                            if (m.GetResponse(uri, stream))
+                                            {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+
+                                        if (!found) contextClosure.Response.StatusCode = 400;
+
+                                        log.Info("Rest Response : " + contextClosure.Response.StatusCode);
                                     }
-                                }
 
-                                if (!found) contextClosure.Response.StatusCode = 400;
+                                    break;
 
-                                log.Info("Rest Response : " + contextClosure.Response.StatusCode);
+                                case "POST":
+
+                                    using (var stream = contextClosure.Request.InputStream)
+                                    {
+                                        contextClosure.Response.StatusCode = 200;
+                                        bool found = false;
+
+                                        foreach (var module in Modules.LoadedModules)
+                                        {
+                                            var m = Modules.Get(module.GetType());
+                                            if (m.SendData(uri, stream))
+                                            {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+
+                                        if (!found) contextClosure.Response.StatusCode = 400;
+
+                                        log.Info("Rest Response : " + contextClosure.Response.StatusCode);
+                                    }
+
+                                    break;
+
+                                case "DELETE":
+
+                                    contextClosure.Response.StatusCode = 400;
+
+                                    foreach (var module in Modules.LoadedModules)
+                                    {
+                                        var m = Modules.Get(module.GetType());
+                                        if (m.DeleteData(uri))
+                                        {
+                                            contextClosure.Response.StatusCode = 200;
+                                            break;
+                                        }
+                                    }
+
+                                    log.Info("Rest Response : " + contextClosure.Response.StatusCode);
+
+                                    break;
                             }
 
                             response.Close();
