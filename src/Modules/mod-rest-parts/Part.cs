@@ -18,8 +18,8 @@ namespace mod_rest_parts
         [JsonProperty("id")]
         public string Id { get { return GenerateId(); } }
 
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        [JsonProperty("program_name")]
+        public string ProgramName { get; set; }
 
         [JsonProperty("start")]
         public DateTime Start { get; set; }
@@ -40,11 +40,17 @@ namespace mod_rest_parts
             }
         }
 
+        [JsonProperty("rejection")]
+        public Rejection Rejection { get; set; }
+
+        [JsonProperty("verification")]
+        public Verification Verification { get; set; }
+
 
         private string GenerateId()
         {
             // Create Identifier input
-            string s = string.Format("{0}|{1}|{2}", Name, Start.ToUnixTime(), Stop.ToUnixTime());
+            string s = string.Format("{0}|{1}|{2}", ProgramName, Start.ToUnixTime(), Stop.ToUnixTime());
             s = Uri.EscapeDataString(s);
 
             // Create Hash

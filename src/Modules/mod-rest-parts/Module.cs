@@ -10,10 +10,11 @@ using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
+using System.Web;
 using TrakHound.Api.v2;
 using TrakHound.Api.v2.Data;
 using TrakHound.Api.v2.Events;
+using Json = TrakHound.Api.v2.Json;
 
 namespace mod_rest_parts
 {
@@ -138,7 +139,7 @@ namespace mod_rest_parts
                                                     {
                                                         // Create a new Part object
                                                         part = new Part();
-                                                        part.Name = programName;
+                                                        part.ProgramName = programName;
                                                         part.Start = time;
                                                     }
 
@@ -172,6 +173,38 @@ namespace mod_rest_parts
 
                                             if (!parts.IsNullOrEmpty())
                                             {
+                                                var partIds = parts.Select(o => o.Id).ToArray();
+
+                                                // Get Rejected Parts
+                                                var rejectedParts = Database.ReadRejectedParts(query.DeviceId, partIds, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue);       
+                                                if (!rejectedParts.IsNullOrEmpty())
+                                                {
+                                                    foreach (var matchedPart in parts)
+                                                    {
+                                                        var rejectedPart = rejectedParts.Find(o => o.PartId == matchedPart.Id);
+                                                        if (rejectedPart != null)
+                                                        {
+                                                            var rejection = new Rejection(rejectedPart.Message, rejectedPart.Timestamp);
+                                                            matchedPart.Rejection = rejection;
+                                                        }
+                                                    }
+                                                }
+
+                                                // Get Verified Parts
+                                                var verifiedParts = Database.ReadVerifiedParts(query.DeviceId, partIds, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue);
+                                                if (!verifiedParts.IsNullOrEmpty())
+                                                {
+                                                    foreach (var matchedPart in parts)
+                                                    {
+                                                        var verifiedPart = verifiedParts.Find(o => o.PartId == matchedPart.Id);
+                                                        if (verifiedPart != null)
+                                                        {
+                                                            var verification = new Verification(verifiedPart.Message, verifiedPart.Timestamp);
+                                                            matchedPart.Verification = verification;
+                                                        }
+                                                    }
+                                                }
+
                                                 // Write JSON to stream
                                                 string json = TrakHound.Api.v2.Json.Convert.ToJson(parts, true);
                                                 var bytes = Encoding.UTF8.GetBytes(json);
@@ -196,6 +229,61 @@ namespace mod_rest_parts
             return false;
         }
 
+        public bool SendData(Uri requestUri, Stream stream)
+        {
+            var query = new SendQuery(requestUri);
+            if (query.IsValid)
+            {
+                string json;
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    json = reader.ReadToEnd();
+                }
+
+                if (!string.IsNullOrEmpty(json))
+                {
+                    json = HttpUtility.UrlDecode(json);
+
+                    if (query.Rejected)
+                    {
+                        var rejectedParts = Json.Convert.FromJson<List<RejectedPart>>(json);
+                        if (!rejectedParts.IsNullOrEmpty())
+                        {
+                            Database.Write(rejectedParts);
+                        }
+                    }
+
+                    if (query.Verified)
+                    {
+                        var verifiedParts = Json.Convert.FromJson<List<VerifiedPart>>(json);
+                        if (!verifiedParts.IsNullOrEmpty())
+                        {
+                            Database.Write(verifiedParts);
+                        }
+                    }          
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool DeleteData(Uri requestUri)
+        {
+            var query = new DeleteQuery(requestUri);
+            if (query.IsValid)
+            {
+                if (query.Rejected) Database.DeleteRejectedPart(query.DeviceId, query.PartId);
+
+                if (query.Verified) Database.DeleteVerifiedPart(query.DeviceId, query.PartId);
+
+                return true;
+            }
+
+            return false;
+        }
+
         private Event GetEvent(string eventName, string agentVersion)
         {
             var version = new Version(agentVersion);
@@ -204,9 +292,11 @@ namespace mod_rest_parts
             var version11 = new Version("1.1.0");
             var version10 = new Version("1.0.0");
 
+            // Version 1.2
             var config = v12EventsConfiguration;
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "v12events.config");
 
+            // Version 1.3
             if (version >= version13)
             {
                 config = v13EventsConfiguration;

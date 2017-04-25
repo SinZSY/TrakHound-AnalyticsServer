@@ -5,6 +5,8 @@
 
 using System;
 using System.Web;
+using TrakHound.Api.v2;
+using Json = TrakHound.Api.v2.Json;
 
 namespace mod_rest_parts
 {
@@ -29,7 +31,7 @@ namespace mod_rest_parts
                 var segments = uri.Segments;
                 if (segments.Length > 1)
                 {
-                    // Check if Programs is the resource that is requested
+                    // Check if Parts is the resource that is requested
                     if (segments[segments.Length - 1].ToLower().Trim('/') == "parts")
                     {
                         // Get the Device Id as the resource owner
