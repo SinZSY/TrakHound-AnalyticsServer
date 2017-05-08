@@ -48,77 +48,80 @@ namespace mod_rest_oee
 
         public static Performance Get(List<Sample> samples, DateTime from, DateTime to, List<AvailabilityEvent> availabilityEvents, bool details)
         {
-            samples = samples.OrderBy(o => o.Timestamp).ToList();
-
-            var overrideEvents = new List<OverrideEvent>();
-            double previousOverride = 0;
-            DateTime previousTime = DateTime.MinValue;
-
-            for (int i = 0; i < samples.Count; i++)
+            if (!availabilityEvents.IsNullOrEmpty())
             {
-                var sample = samples[i];
+                samples = samples.OrderBy(o => o.Timestamp).ToList();
 
-                double feedrateOverride = -1;
-                if (double.TryParse(sample.CDATA, out feedrateOverride))
+                var overrideEvents = new List<OverrideEvent>();
+                double previousOverride = 0;
+                DateTime previousTime = DateTime.MinValue;
+
+                for (int i = 0; i < samples.Count; i++)
                 {
-                    if (previousOverride != feedrateOverride)
+                    var sample = samples[i];
+
+                    double feedrateOverride = -1;
+                    if (double.TryParse(sample.CDATA, out feedrateOverride))
                     {
-                        if (i > 0 && previousOverride >= 0)
+                        if (previousOverride != feedrateOverride)
                         {
-                            overrideEvents.Add(new OverrideEvent(previousOverride, previousTime, samples[i].Timestamp));
+                            if (i > 0 && previousOverride >= 0)
+                            {
+                                overrideEvents.Add(new OverrideEvent(previousOverride, previousTime, sample.Timestamp));
+                            }
+
+                            previousTime = sample.Timestamp < from ? from : sample.Timestamp;
                         }
 
-                        previousTime = sample.Timestamp < from ? from : sample.Timestamp;
-                    }
-
-                    previousOverride = feedrateOverride;
-                }
-            }
-
-            var toTimestamp = to > DateTime.MinValue ? to : DateTime.UtcNow;
-
-            // Add the last Event
-            overrideEvents.Add(new OverrideEvent(previousOverride, previousTime, toTimestamp));
-
-            if (overrideEvents != null)
-            {
-                var performanceEvents = new List<PerformanceEvent>();
-                double operatingTime = 0;
-                double idealOperatingTime = 0;
-
-                foreach (var overrideEvent in overrideEvents)
-                {
-                    double eventOperatingTime = 0;
-
-                    foreach (var availEvent in availabilityEvents)
-                    {
-                        if ((availEvent.Start >= overrideEvent.Start && availEvent.Start < overrideEvent.Stop) || (availEvent.Stop <= overrideEvent.Stop && availEvent.Stop > overrideEvent.Start))
-                        {
-                            // Set Start Time
-                            var startTime = availEvent.Start < overrideEvent.Start ? overrideEvent.Start : availEvent.Start;
-
-                            // Set Stop Time
-                            var stopTime = availEvent.Stop > overrideEvent.Stop ? overrideEvent.Stop : availEvent.Stop;
-
-                            var seconds = (stopTime - startTime).TotalSeconds;
-                            eventOperatingTime += seconds;
-                        }
-                    }
-
-                    double eventIdealOperatingTime = eventOperatingTime * (overrideEvent.FeedrateOverride / 100);
-
-                    operatingTime += eventOperatingTime;
-                    idealOperatingTime += eventIdealOperatingTime;
-
-                    if (operatingTime > 0)
-                    {
-                        performanceEvents.Add(new PerformanceEvent(overrideEvent.FeedrateOverride, eventOperatingTime, eventIdealOperatingTime, overrideEvent.Start, overrideEvent.Stop));
+                        previousOverride = feedrateOverride;
                     }
                 }
 
-                var performance = new Performance(operatingTime, idealOperatingTime, performanceEvents);
-                if (details) performance.Events = performanceEvents;
-                return performance;
+                var toTimestamp = to > DateTime.MinValue ? to : DateTime.UtcNow;
+
+                // Add the last Event
+                overrideEvents.Add(new OverrideEvent(previousOverride, previousTime, toTimestamp));
+
+                if (!overrideEvents.IsNullOrEmpty())
+                {
+                    var performanceEvents = new List<PerformanceEvent>();
+                    double operatingTime = 0;
+                    double idealOperatingTime = 0;
+
+                    foreach (var overrideEvent in overrideEvents)
+                    {
+                        double eventOperatingTime = 0;
+
+                        foreach (var availEvent in availabilityEvents)
+                        {
+                            if ((availEvent.Start >= overrideEvent.Start && availEvent.Start < overrideEvent.Stop) || (availEvent.Stop <= overrideEvent.Stop && availEvent.Stop > overrideEvent.Start))
+                            {
+                                // Set Start Time
+                                var startTime = availEvent.Start < overrideEvent.Start ? overrideEvent.Start : availEvent.Start;
+
+                                // Set Stop Time
+                                var stopTime = availEvent.Stop > overrideEvent.Stop ? overrideEvent.Stop : availEvent.Stop;
+
+                                var seconds = (stopTime - startTime).TotalSeconds;
+                                eventOperatingTime += seconds;
+                            }
+                        }
+
+                        double eventIdealOperatingTime = eventOperatingTime * (overrideEvent.FeedrateOverride / 100);
+
+                        operatingTime += eventOperatingTime;
+                        idealOperatingTime += eventIdealOperatingTime;
+
+                        if (operatingTime > 0)
+                        {
+                            performanceEvents.Add(new PerformanceEvent(overrideEvent.FeedrateOverride, eventOperatingTime, eventIdealOperatingTime, overrideEvent.Start, overrideEvent.Stop));
+                        }
+                    }
+
+                    var performance = new Performance(operatingTime, idealOperatingTime, performanceEvents);
+                    if (details) performance.Events = performanceEvents;
+                    return performance;
+                }
             }
 
             return null;

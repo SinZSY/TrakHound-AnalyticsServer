@@ -38,11 +38,13 @@ namespace mod_rest_oee
 
                     var processor = new Processor(query, dataItems, components, agent.Version);
                     var oees = processor.Run();
-
-                    // Write JSON to stream
-                    string json = Json.Convert.ToJson(oees, true);
-                    var bytes = Encoding.UTF8.GetBytes(json);
-                    stream.Write(bytes, 0, bytes.Length);
+                    if (oees != null)
+                    {
+                        // Write JSON to stream
+                        string json = Json.Convert.ToJson(oees, true);
+                        var bytes = Encoding.UTF8.GetBytes(json);
+                        stream.Write(bytes, 0, bytes.Length);
+                    }
                 }
 
                 return true;
