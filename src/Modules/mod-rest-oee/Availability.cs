@@ -20,9 +20,6 @@ namespace mod_rest_oee
         public const string EVENT_VALUE = "Active";
 
         private static Logger log = LogManager.GetCurrentClassLogger();
-        private static EventsConfiguration v12EventsConfiguration;
-        private static EventsConfiguration v13EventsConfiguration;
-
 
         [JsonProperty("operating_time")]
         public double OperatingTime { get; set; }

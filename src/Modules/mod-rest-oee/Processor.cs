@@ -185,9 +185,6 @@ namespace mod_rest_oee
             currentSamples.AddRange(instanceSamples);
             currentSamples.AddRange(samples.FindAll(o => o.Timestamp > from && o.Timestamp < next));
 
-            var stpw = new System.Diagnostics.Stopwatch();
-            stpw.Start();
-
             // Get Availability
             var availability = Availability.Get(from, next, availabilityEvent, currentSamples, dataItemInfos, RequestQuery.Details);
             if (availability != null)
