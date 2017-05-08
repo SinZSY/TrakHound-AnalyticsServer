@@ -58,17 +58,18 @@ namespace mod_rest_parts
                                 {
                                     // Program Name DataItem
                                     var programNameItem = dataItems.Find(o => o.Type == "PROGRAM");
-                                    if (programNameItem != null) ids.Add(programNameItem.Id);
+                                    if (programNameItem != null) if (!ids.Exists(o => o == programNameItem.Id)) ids.Add(programNameItem.Id);
 
                                     // Execution DataItem
                                     var executionItem = dataItems.Find(o => o.Type == "EXECUTION");
-                                    if (executionItem != null) ids.Add(executionItem.Id);
+                                    if (executionItem != null) if (!ids.Exists(o => o == executionItem.Id)) ids.Add(executionItem.Id);
 
                                     // Get Samples
-                                    var samples = Database.ReadSamples(ids.ToArray(), query.DeviceId, query.From, query.To, DateTime.MinValue, 0);
+                                    var samples = Database.ReadSamples(ids.ToArray(), query.DeviceId, query.From, query.To, DateTime.MinValue, 500000);
                                     if (!samples.IsNullOrEmpty())
                                     {
                                         // Get the initial timestamp
+                                        //DateTime timestamp = samples.Select(o => o.Timestamp).OrderBy(o => o).First();
                                         DateTime timestamp;
                                         if (query.From > DateTime.MinValue) timestamp = query.From;
                                         else timestamp = samples.Select(o => o.Timestamp).OrderByDescending(o => o).First();
@@ -108,10 +109,18 @@ namespace mod_rest_parts
 
 
                                                 // Program Name
-                                                var programName = currentSamples.Find(o => o.Id == programNameItem.Id).CDATA;
+                                                string programName = null;
+                                                if (currentSamples.Exists(o => o.Id == programNameItem.Id))
+                                                {
+                                                    programName = currentSamples.Find(o => o.Id == programNameItem.Id).CDATA;
+                                                }
 
                                                 // Execution
-                                                var execution = currentSamples.Find(o => o.Id == executionItem.Id).CDATA;
+                                                string execution = null;
+                                                if (currentSamples.Exists(o => o.Id == executionItem.Id))
+                                                {
+                                                    execution = currentSamples.Find(o => o.Id == executionItem.Id).CDATA;
+                                                }
 
                                                 // Create a list of SampleInfo objects with DataItem information contained
                                                 var infos = SampleInfo.Create(dataItemInfos, currentSamples);
@@ -249,6 +258,8 @@ namespace mod_rest_parts
                         var rejectedParts = Json.Convert.FromJson<List<RejectedPart>>(json);
                         if (!rejectedParts.IsNullOrEmpty())
                         {
+                            foreach (var part in rejectedParts) part.DeviceId = query.DeviceId;
+
                             Database.Write(rejectedParts);
                         }
                     }
@@ -258,6 +269,8 @@ namespace mod_rest_parts
                         var verifiedParts = Json.Convert.FromJson<List<VerifiedPart>>(json);
                         if (!verifiedParts.IsNullOrEmpty())
                         {
+                            foreach (var part in verifiedParts) part.DeviceId = query.DeviceId;
+
                             Database.Write(verifiedParts);
                         }
                     }          
