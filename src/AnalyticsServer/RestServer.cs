@@ -126,11 +126,18 @@ namespace TrakHound.AnalyticsServer
 
                                         foreach (var module in Modules.LoadedModules)
                                         {
-                                            var m = Modules.Get(module.GetType());
-                                            if (m.GetResponse(uri, stream))
+                                            try
                                             {
-                                                found = true;
-                                                break;
+                                                var m = Modules.Get(module.GetType());
+                                                if (m.GetResponse(uri, stream))
+                                                {
+                                                    found = true;
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                log.Info(module.Name + " : ERROR : " + ex.Message);
                                             }
                                         }
 
