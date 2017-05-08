@@ -110,7 +110,7 @@ namespace TrakHound.AnalyticsServer
                             log.Info("Connected to : " + contextClosure.Request.LocalEndPoint.ToString() + " : " + contextClosure.Request.Url.ToString());
 
                             response.Headers.Add("Access-Control-Allow-Origin", "*");
-                            response.Headers.Add("Access-Control-Allow-Methods", "POST, GET");
+                            response.Headers.Add("Access-Control-Allow-Methods", "POST, GET, DELETE");
 
                             var uri = contextClosure.Request.Url;
                             var method = contextClosure.Request.HttpMethod;
