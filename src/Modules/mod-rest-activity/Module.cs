@@ -24,7 +24,8 @@ namespace mod_rest_activity
     {
         private static Logger log = LogManager.GetCurrentClassLogger();
 
-        private static EventsConfiguration eventsConfiguration;
+        private static EventsConfiguration v12EventsConfiguration;
+        private static EventsConfiguration v13EventsConfiguration;
 
         public string Name { get { return "Activity"; } }
 
@@ -67,7 +68,7 @@ namespace mod_rest_activity
 
                             if (!samples.IsNullOrEmpty())
                             {
-                                var events = GetEvents(query.EventName);
+                                var events = GetEvents(agent.Version);
                                 if (events != null)
                                 {
                                     // Get the initial timestamp
@@ -178,17 +179,32 @@ namespace mod_rest_activity
             return false;
         }
 
-        private List<Event> GetEvents(string eventName)
+        private List<Event> GetEvents(string agentVersion)
         {
-            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);
+            var version = new Version(agentVersion);
+            var version13 = new Version("1.3.0");
+            var version12 = new Version("1.2.0");
+            var version11 = new Version("1.1.0");
+            var version10 = new Version("1.0.0");
+
+            // Version 1.2
+            var config = v12EventsConfiguration;
+            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "v12events.config");
+
+            // Version 1.3
+            if (version >= version13)
+            {
+                config = v13EventsConfiguration;
+                configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "v13events.config");
+            }
 
             // Read the EventsConfiguration file
-            var config = eventsConfiguration;
             if (config == null) config = EventsConfiguration.Get(configPath);
             if (config != null)
             {
-                eventsConfiguration = config;
-                if (!string.IsNullOrEmpty(eventName)) return config.Events.FindAll(o => o.Name.ToLower() == eventName.ToLower());
+                if (version >= version13) v13EventsConfiguration = config;
+                else v12EventsConfiguration = config;
+
                 return config.Events;
             }
 
@@ -245,74 +261,6 @@ namespace mod_rest_activity
                     i++;
 
                 } while (i < timestamps.Count - 1);
-            }
-
-            return l;
-        }
-
-        private List<EventItem> GetEvents(List<DataItemInfo> dataItemInfos, List<Sample> samples, DateTime from)
-        {
-            var l = new List<EventItem>();
-
-            if (!samples.IsNullOrEmpty())
-            {
-                string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);
-
-                // Read the EventsConfiguration file
-                var config = eventsConfiguration;
-                if (config == null) config = EventsConfiguration.Get(configPath);
-                if (config != null)
-                {
-                    eventsConfiguration = config;
-
-                    // Create a list of SampleInfo objects with DataItem information contained
-                    var infos = SampleInfo.Create(dataItemInfos, samples);
-
-                    // Get a list of instance values
-                    var instance = infos.FindAll(o => o.Timestamp <= from);
-
-                    // Find all distinct timestamps greater than or equal to 'from'
-                    var timestamps = infos.FindAll(o => o.Timestamp > from).Select(o => o.Timestamp).Distinct().OrderBy(o => o).ToList();
-
-                    int i = 0;
-                    DateTime timestamp = from;
-
-                    do
-                    {
-                        // Evaluate Events
-                        foreach (var e in config.Events)
-                        {
-                            var response = e.Evaluate(instance);
-                            if (response != null)
-                            {
-                                var item = new EventItem();
-                                if (item.Timestamp > response.Timestamp) item.Timestamp = response.Timestamp;
-                                item.Name = e.Name;
-                                item.Description = e.Description;
-                                item.Value = response.Value;
-                                item.ValueDescription = response.Description;
-
-                                l.Add(item);
-                            }
-                        }
-
-                        if (timestamps.Count > 0)
-                        {
-                            // Update instance values
-                            var atTimestamp = infos.FindAll(o => o.Timestamp == timestamps[i]);
-                            foreach (var sample in atTimestamp)
-                            {
-                                var match = instance.Find(o => o.Id == sample.Id);
-                                if (match != null) instance.Remove(match);
-                                instance.Add(sample);
-                            }
-                        }
-                        else break;
-
-                        i++;
-
-                    } while (i < timestamps.Count - 1);
-                }
             }
 
             return l;
