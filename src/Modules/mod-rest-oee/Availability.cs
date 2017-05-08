@@ -7,22 +7,21 @@ using Newtonsoft.Json;
 using NLog;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using TrakHound.Api.v2;
 using TrakHound.Api.v2.Data;
 using TrakHound.Api.v2.Events;
 
-
 namespace mod_rest_oee
 {
     class Availability
     {
-        private const string EVENT_NAME = "Status";
-        private const string EVENT_VALUE = "Active";
+        public const string EVENT_NAME = "Status";
+        public const string EVENT_VALUE = "Active";
 
         private static Logger log = LogManager.GetCurrentClassLogger();
-        private static EventsConfiguration eventsConfiguration;
+        private static EventsConfiguration v12EventsConfiguration;
+        private static EventsConfiguration v13EventsConfiguration;
 
 
         [JsonProperty("operating_time")]
@@ -54,151 +53,87 @@ namespace mod_rest_oee
             if (!events.IsNullOrEmpty()) _events = events;
         }
 
-        public static Availability Get(RequestQuery query, List<DataItemDefinition> dataItems, List<ComponentDefinition> components)
+        public static Availability Get(DateTime from, DateTime to, Event e, List<Sample> samples, List<DataItemInfo> dataItemInfos, bool details)
         {
-            var e = GetEvent(EVENT_NAME);
-            if (e != null)
+            if (!samples.IsNullOrEmpty())
             {
-                List<Sample> samples = null;
+                // Get the initial timestamp
+                DateTime timestamp;
+                if (from > DateTime.MinValue) timestamp = from;
+                else timestamp = samples.Select(o => o.Timestamp).OrderByDescending(o => o).First();
 
-                if (!dataItems.IsNullOrEmpty())
+                var instanceSamples = samples.FindAll(o => o.Timestamp <= timestamp);
+
+                double operatingTime = 0;
+                bool addPrevious = false;
+                string previousEvent = null;
+
+                var events = new List<AvailabilityEvent>();
+
+                // Get Distinct Timestamps
+                var timestamps = new List<DateTime>();
+                timestamps.Add(from);
+                timestamps.AddRange(samples.FindAll(o => o.Timestamp >= from).Select(o => o.Timestamp).Distinct().ToList());
+                timestamps.Add(to);
+                timestamps.Sort();
+
+                var filteredSamples = samples.ToList();
+
+                // Calculate the Operating Time
+                for (int i = 0; i < timestamps.Count; i++)
                 {
-                    var ids = GetEventIds(e, dataItems, components);
-                    if (!ids.IsNullOrEmpty())
-                    { 
-                        // Get Samples
-                        samples = Database.ReadSamples(ids.ToArray(), query.DeviceId, query.From, query.To, DateTime.MinValue, 0);
+                    var time = timestamps[i];
+
+                    // Update CurrentSamples
+                    foreach (var sample in filteredSamples.FindAll(o => o.Timestamp == time))
+                    {
+                        int j = instanceSamples.FindIndex(o => o.Id == sample.Id);
+                        if (j >= 0) instanceSamples[j] = sample;
+                        else instanceSamples.Add(sample);
+                    }
+
+                    //Create a list of SampleInfo objects with DataItem information contained
+                    var infos = SampleInfo.Create(dataItemInfos, instanceSamples);
+
+                    // Evaluate the Event and get the Response
+                    var response = e.Evaluate(infos);
+                    if (response != null)
+                    {
+                        if (addPrevious && i > 0)
+                        {
+                            var previousTime = timestamps[i - 1] < from ? from : timestamps[i - 1];
+                            double seconds = (time - previousTime).TotalSeconds;
+                            events.Add(new AvailabilityEvent(previousEvent, previousTime, time));
+                            operatingTime += seconds;
+                        }
+
+                        addPrevious = response.Value == EVENT_VALUE;
+                        previousEvent = response.Value;
                     }
                 }
 
-                if (!samples.IsNullOrEmpty())
+                var toTimestamp = to > DateTime.MinValue ? to : DateTime.UtcNow;
+
+                if (addPrevious)
                 {
-                    // Get the initial timestamp
-                    DateTime timestamp;
-                    if (query.From > DateTime.MinValue) timestamp = query.From;
-                    else timestamp = samples.Select(o => o.Timestamp).OrderByDescending(o => o).First();
-
-                    // Create a list of DataItemInfos (DataItems with Parent Component info)
-                    var dataItemInfos = DataItemInfo.CreateList(dataItems, components);
-
-                    var instanceSamples = samples.FindAll(o => o.Timestamp <= timestamp);
-
-                    double operatingTime = 0;
-                    bool addPrevious = false;
-                    string previousEvent = null;
-
-                    var events = new List<AvailabilityEvent>();
-
-                    // Get Distinct Timestamps
-                    var timestamps = new List<DateTime>();
-                    timestamps.Add(query.From);
-                    timestamps.AddRange(samples.FindAll(o => o.Timestamp >= timestamp).OrderBy(o => o.Timestamp).Select(o => o.Timestamp).Distinct().ToList());
-                    timestamps.Add(query.To);
-
-                    // Calculate the Operating Time
-                    for (int i = 0; i < timestamps.Count; i++)
+                    var eventDuration = (toTimestamp - timestamps[timestamps.Count - 1]).TotalSeconds;
+                    if (eventDuration > 0)
                     {
-                        var time = timestamps[i];
-
-                        // Update CurrentSamples
-                        foreach (var sample in samples.FindAll(o => o.Timestamp == time))
-                        {
-                            int j = instanceSamples.FindIndex(o => o.Id == sample.Id);
-                            if (j >= 0) instanceSamples[j] = sample;
-                            else instanceSamples.Add(sample);
-                        }
-
-                        // Create a list of SampleInfo objects with DataItem information contained
-                        var infos = SampleInfo.Create(dataItemInfos, instanceSamples);
-
-                        // Evaluate the Event and get the Response
-                        var response = e.Evaluate(infos);
-                        if (response != null)
-                        {
-                            if (addPrevious && i > 0)
-                            {
-                                var previousTime = timestamps[i - 1] < query.From ? query.From : timestamps[i - 1];
-                                double seconds = (time - previousTime).TotalSeconds;
-                                events.Add(new AvailabilityEvent(previousEvent, previousTime, time));
-                                operatingTime += seconds;
-                            }
-
-                            addPrevious = response.Value == EVENT_VALUE;
-                            previousEvent = response.Value;
-                        }
-                    }
-
-                    var toTimestamp = query.To > DateTime.MinValue ? query.To : DateTime.UtcNow;
-
-                    if (addPrevious)
-                    {
-                        operatingTime += (toTimestamp - timestamps[timestamps.Count - 1]).TotalSeconds;
+                        operatingTime += eventDuration;
                         events.Add(new AvailabilityEvent(previousEvent, timestamps[timestamps.Count - 1], toTimestamp));
                     }
-
-                    // Calculate the TotalTime that is being evaluated
-                    var totalTime = (toTimestamp - timestamps[0]).TotalSeconds;
-
-                    var availability = new Availability(operatingTime, totalTime, events);
-                    if (query.Details) availability.Events = availability._events;
-
-                    return availability;
                 }
+
+                // Calculate the TotalTime that is being evaluated
+                var totalTime = (toTimestamp - timestamps[0]).TotalSeconds;
+
+                var availability = new Availability(operatingTime, totalTime, events);
+                if (details) availability.Events = availability._events;
+
+                return availability;
             }
 
             return null;
         }
-        
-        private static Event GetEvent(string eventName)
-        {
-            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, EventsConfiguration.FILENAME);
-
-            // Read the EventsConfiguration file
-            var config = eventsConfiguration;
-            if (config == null) config = EventsConfiguration.Get(configPath);
-            if (config != null)
-            {
-                eventsConfiguration = config;
-                var e = config.Events.Find(o => o.Name.ToLower() == eventName.ToLower());
-                if (e != null) return e;
-            }
-
-            return null;
-        }
-
-        private static string[] GetEventIds(Event e, List<DataItemDefinition> dataItems, List<ComponentDefinition> components)
-        {
-            var ids = new List<string>();
-
-            foreach (var response in e.Responses)
-            {
-                foreach (var trigger in response.Triggers.OfType<Trigger>())
-                {
-                    foreach (var id in GetFilterIds(trigger.Filter, dataItems, components))
-                    {
-                        if (!ids.Exists(o => o == id)) ids.Add(id);
-                    }
-                }
-            }
-
-            return ids.ToArray();
-        }
-
-        private static string[] GetFilterIds(string filter, List<DataItemDefinition> dataItems, List<ComponentDefinition> components)
-        {
-            var ids = new List<string>();
-
-            foreach (var dataItem in dataItems)
-            {
-                var dataFilter = new DataFilter(filter, dataItem, components);
-                if (dataFilter.IsMatch() && !ids.Exists(o => o == dataItem.Id))
-                {
-                    ids.Add(dataItem.Id);
-                }
-            }
-
-            return ids.ToArray();
-        }
-
     }
 }

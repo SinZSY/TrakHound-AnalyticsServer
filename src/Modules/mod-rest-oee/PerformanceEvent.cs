@@ -6,7 +6,6 @@
 using Newtonsoft.Json;
 using System;
 
-
 namespace mod_rest_oee
 {
     class PerformanceEvent

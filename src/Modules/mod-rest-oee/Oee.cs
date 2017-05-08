@@ -5,6 +5,7 @@
 
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace mod_rest_oee
 {
@@ -15,6 +16,7 @@ namespace mod_rest_oee
         {
             get
             {
+                if (Quality != null && Performance != null) return Math.Round(Availability.Value * Performance.Value * Quality.Value, 5);
                 if (Performance != null) return Math.Round(Availability.Value * Performance.Value, 5);
                 else if (Availability != null) return Math.Round(Availability.Value, 5);
 
@@ -33,5 +35,11 @@ namespace mod_rest_oee
 
         [JsonProperty("performance")]
         public Performance Performance { get; set; }
+
+        [JsonProperty("quality")]
+        public Quality Quality { get; set; }
+
+        [JsonIgnore]
+        public List<Part> Parts { get; set; }
     }
 }

@@ -15,8 +15,6 @@ namespace mod_rest_oee
     {
         public string DeviceId { get; set; }
 
-        public string SubQuery { get; set; }
-
         public DateTime From { get; set; }
 
         public DateTime To { get; set; }
@@ -43,17 +41,6 @@ namespace mod_rest_oee
                     // Get the requested Query and SubQuery
                     string query = segments[segments.Length - 1].ToLower().Trim('/');
                     if (query == "oee") valid = true;
-                    else if (segments.Length > 2)
-                    {
-                        // Get SubQuery
-                        if (query == "availability" || query == "performance" || query == "quality")
-                        {
-                            SubQuery = query;
-                            valid = segments[segments.Length - i].Trim('/') == "oee";
-                        }
-
-                        i = 3;
-                    }
 
                     if (valid)
                     {
