@@ -12,15 +12,34 @@ namespace mod_rest_model
 {
     class DeviceItem : Device
     {
-        [JsonProperty("components", Order = 5)]
-        public List<ComponentItem> Components { get; set; }
+        [JsonProperty("connection", Order = 4)]
+        public Connection Connection { get; set; }
 
-        [JsonProperty("data_items", Order = 4)]
+        [JsonProperty("agent", Order = 5)]
+        public Agent Agent { get; set; }
+
+        [JsonProperty("data_items", Order = 6)]
         public List<DataItem> DataItems { get; set; }
 
+        [JsonProperty("components", Order = 7)]
+        public List<ComponentItem> Components { get; set; }
 
-        public DeviceItem(DeviceDefinition device)
+
+        public DeviceItem(DeviceDefinition device, ConnectionDefinition connection, AgentDefinition agent)
         {
+            Connection = new Connection();
+            Connection.Address = connection.Address;
+            Connection.Port = connection.Port;
+            Connection.PhysicalAddress = connection.PhysicalAddress;
+
+            Agent = new Agent();
+            Agent.BufferSize = agent.BufferSize;
+            Agent.InstanceId = agent.InstanceId;
+            Agent.Sender = agent.Sender;
+            Agent.TestIndicator = agent.TestIndicator;
+            Agent.Timestamp = agent.Timestamp;
+            Agent.Version = agent.Version;
+
             Id = device.Id;
             Uuid = device.Uuid;
             Name = device.Name;
